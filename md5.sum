@@ -5424,3 +5424,11 @@ aa9faff15fc4bc65940d62236b7f1de8  opcodes/z8k-opc.h
 671f95a4f3f078b483390601bc8a729d  symlink-tree
 869b0770320db2cd18093b1a9ffafef8  texinfo/texinfo.tex
 7588c5103af27cc93537977f059f52dc  ylwrap
+148fad0cc1f763de146e8b24585ecc7c  cgen/cpu/fr30.cpu
+9c5d5fa5b445b9355b85077bd49a5f97  cgen/cpu/fr30.opc
+75592d87915e75debae73108ddc302b2  cgen/cpu/ip2k.cpu
+8d5edda5f98445600dee230f555a2456  cgen/cpu/ip2k.opc
+867a60d05d64405fdb1ef21000caeedc  cgen/cpu/openrisc.cpu
+945e53326e14b969cd64bb0cb5a37c30  cgen/cpu/openrisc.opc
+660d36f7635ce300de54206767f36c5b  cgen/cpu/xstormy16.cpu
+ce470f63afdfaaaffd13956b0d3b51db  cgen/cpu/xstormy16.opc
