@@ -239,8 +239,11 @@ static int get_line_sb PARAMS ((sb *));
 static void generate_file_debug PARAMS ((void));
 void ignore_rest_of_line (void);
 static void ignore_rest_of_line2 (int);
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> 2b6e426... @R support newer asm directives
 
 void
 read_begin ()

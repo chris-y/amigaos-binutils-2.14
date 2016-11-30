@@ -7034,6 +7034,9 @@ md_parse_option (c, arg)
 	{
 	  int i;
 
+      if (arg[0] == 'c' && arg[1] == 'p' && arg[2] == 'u' && arg[3] == '=')
+    	  arg += 4;
+      else
 	  if (arg[0] == 'c' && arg[1] == '6')
 	    arg++;
 
