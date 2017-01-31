@@ -287,11 +287,13 @@ static void obj_section(int push) {
 	char const * name = obj_section_name();
 	if (name == NULL)
 		return;
-
-	if (0 == strcmp(".rodata", name))
-		s_text(push);
+//printf("section: %s\r\n", name);
+	if (0 == strcmp(".rodata", name) 
+//|| 0 == strncmp(".text", name, 5)
+	)
+	  s_text(push);
 	else
-		s_data(push);
+	  s_data(push);
 }
 
 

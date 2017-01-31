@@ -593,7 +593,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 
   relocation=0; flags=RELOC_SIGNED; copy=FALSE; ret=bfd_reloc_ok;
 
-  DPRINT(10,("RELOC: %s: size=%u\n",r->howto->name,bfd_get_reloc_size(r->howto)));
+  DPRINT(10,("RELOC: %s, %d: size=%u\n",r->howto->name,r->howto->type,bfd_get_reloc_size(r->howto)));
   switch (r->howto->type)
     {
     case H_ABS8: /* 8/16 bit reloc, pc relative or absolute */
@@ -609,7 +609,11 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	}
       else if (sec->output_section!=target_section->output_section)
 	{
-	  if ((target_section->output_section->flags&SEC_DATA)!=0)
+	  // SBF: the if statement has been fixed, but the linker does no longer work.
+	  // if ((target_section->output_section->flags&SEC_DATA)!=0)
+	  // I replaced it with the old (obvious bogus) statement
+	  // TODO: a better fix
+	  if (target_section->output_section->flags & (SEC_DATA != 0))
 	    goto baserel; /* Dirty, but no code duplication.. */
 	  bfd_msg ("pc relative relocation out-of-range in section %s. "
 		   "Relocation was to symbol %s",sec->name,sym->name);
@@ -654,10 +658,17 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
     case H_PC8: /* pcrel */
     case H_PC16:
     case H_PC32:
+	DPRINT(10,("pcrel: %s\n", sym->name));
       if (bfd_is_abs_section(target_section)) /* Ref to absolute hunk */
 	relocation=sym->value;
       else if (sec->output_section!=target_section->output_section) /* Error */
 	{
+	  DPRINT(10,("target->out=%s(%lx), sec->out=%s(%lx), symbol=%s\n",
+		     target_section->output_section->name,
+		     target_section->output_section,
+		     sec->output_section->name,
+		     sec->output_section,
+		     sym->name));
 	  DPRINT(5,("pc relative, but out-of-range\n"));
 	  ret=bfd_reloc_outofrange;
 	}
@@ -671,6 +682,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
     case H_SD16: /* baserel */
     case H_SD32:
     baserel:
+	DPRINT(10,("baserel: %s\n", sym->name));
       /* We use the symbol ___a4_init as base */
       if (bfd_is_abs_section(target_section))
 	relocation=sym->value;

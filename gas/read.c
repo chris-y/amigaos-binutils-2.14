@@ -19,6 +19,22 @@ along with GAS; see the file COPYING.  If not, write to the Free
 Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 02111-1307, USA.  */
 
+//#define DEBUG_READ 1
+#if DEBUG_READ
+#include <stdarg.h>
+static void
+error_print (const char *fmt, ...)
+{
+  va_list args;
+  va_start (args, fmt);
+  vfprintf (stderr, fmt, args);
+  va_end (args);
+}
+#define DPRINT(L,x) if (L>=DEBUG_READ) error_print x
+#else
+#define DPRINT(L,x)
+#endif
+
 #if 0
 /* If your chars aren't 8 bits, you will change this a bit.
    But then, GNU isn't spozed to run on your machine anyway.
@@ -767,6 +783,8 @@ read_a_source_file (name)
 
 		      if (pop == NULL)
 			pop = (pseudo_typeS *) hash_find (po_hash, s + 1);
+
+		      DPRINT(10, ("s=%s -> %p\r\n", s, pop)); 
 
 		      /* In MRI mode, we may need to insert an
                          automatic alignment directive.  What a hack
@@ -2503,6 +2521,7 @@ void
 s_mri_sect (type)
      char *type ATTRIBUTE_UNUSED;
 {
+  DPRINT(10, ("s_mri_sect type=%s\r\n", type));
 #ifdef TC_M68K
 
   char *name;
