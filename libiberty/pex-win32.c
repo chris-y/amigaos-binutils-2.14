@@ -132,7 +132,7 @@ pexecute (program, argv, this_pname, temp_base, errmsg_fmt, errmsg_arg, flags)
      char * const *argv;
      const char *this_pname;
      const char *temp_base;
-     char **errmsg_fmt, **errmsg_arg;
+     const char **errmsg_fmt, **errmsg_arg;
      int flags;
 {
   int pid;

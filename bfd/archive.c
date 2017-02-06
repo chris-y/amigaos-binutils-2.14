@@ -127,6 +127,7 @@ DESCRIPTION
  " 18             " - Long name 18 characters long, extended pseudo-BSD.
  */
 
+#include "config.h"
 #include "bfd.h"
 #include "sysdep.h"
 #include "libbfd.h"
@@ -625,7 +626,7 @@ bfd_generic_archive_p (abfd)
   struct artdata *tdata_hold;
   char armag[SARMAG + 1];
   bfd_size_type amt;
-
+  printf("bfd_generic_archive_p\n");
   if (bfd_bread ((PTR) armag, (bfd_size_type) SARMAG, abfd) != SARMAG)
     {
       if (bfd_get_error () != bfd_error_system_call)

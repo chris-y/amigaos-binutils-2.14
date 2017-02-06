@@ -916,7 +916,7 @@ space consuming.  For each target:
     case -2:
       {
 	long x = bfd_get_32 (abfd, (bfd_byte *) data + octets);
-	relocation = -relocation;
+	relocation = -(long)relocation;
 	DOIT (x);
 	bfd_put_32 (abfd, (bfd_vma) x, (bfd_byte *) data + octets);
       }
@@ -925,7 +925,7 @@ space consuming.  For each target:
     case -1:
       {
 	long x = bfd_get_16 (abfd, (bfd_byte *) data + octets);
-	relocation = -relocation;
+	relocation = -(long)relocation;
 	DOIT (x);
 	bfd_put_16 (abfd, (bfd_vma) x, (bfd_byte *) data + octets);
       }
@@ -1300,7 +1300,7 @@ space consuming.  For each target:
     case -2:
       {
 	long x = bfd_get_32 (abfd, (bfd_byte *) data);
-	relocation = -relocation;
+	relocation = -(long)relocation;
 	DOIT (x);
 	bfd_put_32 (abfd, (bfd_vma) x, (bfd_byte *) data);
       }
@@ -1409,7 +1409,7 @@ _bfd_relocate_contents (howto, input_bfd, relocation, location)
   /* If the size is negative, negate RELOCATION.  This isn't very
      general.  */
   if (howto->size < 0)
-    relocation = -relocation;
+    relocation = -(long)relocation;
 
   /* Get the value we are going to relocate.  */
   size = bfd_get_reloc_size (howto);

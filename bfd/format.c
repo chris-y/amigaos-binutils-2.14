@@ -40,9 +40,15 @@ SECTION
 
 */
 
+#include "config.h"
 #include "bfd.h"
 #include "sysdep.h"
 #include "libbfd.h"
+
+#ifdef DEBUGPRINT
+#define DBGPRINT(a) printf a
+#else
+#define DBGPRINT(a)
 
 /* IMPORT from targets.c.  */
 extern const size_t _bfd_target_vector_entries;
@@ -230,8 +236,9 @@ bfd_check_format_matches (abfd, format, matching)
 	 _bfd_check_format might have this problem.  */
       bfd_set_error (bfd_error_wrong_format);
 
-      temp = BFD_SEND_FMT (abfd, _bfd_check_format, (abfd));
-
+	  DBGPRINT(("%s using %s: %p\n", abfd->filename, abfd->xvec->name, abfd->xvec->_bfd_check_format));
+	  temp = BFD_SEND_FMT (abfd, _bfd_check_format, (abfd));
+	  DBGPRINT(("%s using %s: %p -> %p\n", abfd->filename, abfd->xvec->name, abfd->xvec->_bfd_check_format, temp));
       if (temp)
 	{
 	  /* This format checks out as ok!  */

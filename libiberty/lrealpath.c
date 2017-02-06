@@ -50,6 +50,10 @@ components will be simplified.  The returned value will be allocated using
 #include <string.h>
 #endif
 
+#ifndef DIR_SEPARATOR_S
+#define DIR_SEPARATOR_S "/"
+#endif
+
 /* On GNU libc systems the declaration is only visible with _GNU_SOURCE.  */
 #if defined(HAVE_CANONICALIZE_FILE_NAME) \
     && defined(NEED_DECLARATION_CANONICALIZE_FILE_NAME)
@@ -113,7 +117,7 @@ lrealpath (filename)
 #if defined (HAVE_REALPATH) && defined (HAVE_UNISTD_H)
   {
     /* Find out the max path size.  */
-    long path_max = pathconf ("/", _PC_PATH_MAX);
+    long path_max = pathconf (DIR_SEPARATOR_S, _PC_PATH_MAX);
     if (path_max > 0)
       {
 	/* PATH_MAX is bounded.  */

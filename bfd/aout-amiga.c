@@ -18,6 +18,8 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
+#include "config.h"
+
 #define TARGETNAME "a.out-amiga"
 #define MACHTYPE_OK(m) ((m)==M_UNKNOWN || (m)==M_68010 || (m)==M_68020)
 #define TARGET_IS_BIG_ENDIAN_P

@@ -307,7 +307,7 @@ fold_unary (tree, current_section, allocation_done, dot, dotp)
 
 	case '-':
 	  make_abs (&result);
-	  result.value = -result.value;
+	  result.value = -(long)result.value;
 	  break;
 
 	case NEXT:
@@ -668,7 +668,7 @@ exp_fold_tree (tree, current_section, allocation_done, dot, dotp)
      bfd_vma dot;
      bfd_vma *dotp;
 {
-  etree_value_type result;
+	etree_value_type result = { 0, 0, 0, 0 };
 
   if (tree == NULL)
     {

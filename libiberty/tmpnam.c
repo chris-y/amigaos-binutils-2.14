@@ -11,7 +11,7 @@ not be used in new projects.  Use @code{mkstemp} instead.
 @end deftypefn
 
 */
-
+#include "config.h"
 #include <stdio.h>
 
 #ifndef L_tmpnam

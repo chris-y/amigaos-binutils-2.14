@@ -152,7 +152,7 @@ physmem_total ()
 #if defined _WIN32
   { /* this works on windows */
     PFN_MS_EX pfnex;
-    HMODULE h = GetModuleHandle ("kernel32.dll");
+    HMODULE h = GetModuleHandleA ("kernel32.dll");
 
     if (!h)
       return 0.0;
@@ -253,7 +253,7 @@ physmem_available ()
 #if defined _WIN32
   { /* this works on windows */
     PFN_MS_EX pfnex;
-    HMODULE h = GetModuleHandle ("kernel32.dll");
+    HMODULE h = GetModuleHandleA ("kernel32.dll");
 
     if (!h)
       return 0.0;
