@@ -49,6 +49,7 @@ SECTION
 #define DBGPRINT(a) printf a
 #else
 #define DBGPRINT(a)
+#endif
 
 /* IMPORT from targets.c.  */
 extern const size_t _bfd_target_vector_entries;
