@@ -117,6 +117,7 @@ BFD:
 	  rewrite of the disassemble functions.
 */
 
+#include "config.h"
 #include "bfd.h"
 #include "sysdep.h"
 #include "libbfd.h"
