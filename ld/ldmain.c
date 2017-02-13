@@ -1018,7 +1018,7 @@ multiple_common (info, name, obfd, otype, osize, nbfd, ntype, nsize)
      bfd_vma nsize;
 {
   if (! config.warn_common)
-    return TRUE;
+    return 2;
 
   if (ntype == bfd_link_hash_defined
       || ntype == bfd_link_hash_defweak
