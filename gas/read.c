@@ -297,6 +297,7 @@ static const pseudo_typeS potable[] = {
   {"common", s_mri_common, 0},
   {"common.s", s_mri_common, 1},
   {"data", s_data, 0},
+  {"gcc_except_table", s_data, 0},
 #ifdef OBJ_AMIGAHUNK
   {"datachip", s_data_chip, 0},
 #endif
