@@ -26,6 +26,7 @@
    when name truncated. No way to specify pos_end. Error messages should be
    more consistant.  */
 
+#include "config.h"
 #include "bfd.h"
 #include "libiberty.h"
 #include "progress.h"
@@ -351,7 +352,7 @@ static FILE *output_file = NULL;
 static bfd *output_bfd = NULL;
 
 static void
-remove_output ()
+remove_output (void)
 {
   if (output_filename != NULL)
     {

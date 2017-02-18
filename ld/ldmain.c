@@ -162,7 +162,7 @@ static struct bfd_link_callbacks link_callbacks =
 struct bfd_link_info link_info;
 
 static void
-remove_output ()
+remove_output (void)
 {
   if (output_filename)
     {

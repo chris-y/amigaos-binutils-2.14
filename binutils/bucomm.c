@@ -22,6 +22,7 @@
 /* We might put this in a library someday so it could be dynamically
    loaded, but for now it's not necessary.  */
 
+#include "config.h"
 #include "bfd.h"
 #include "bfdver.h"
 #include "libiberty.h"
@@ -34,7 +35,9 @@
 
 #ifndef HAVE_TIME_T_IN_TIME_H
 #ifndef HAVE_TIME_T_IN_TYPES_H
+#ifndef _TIME_T_DEFINED
 typedef long time_t;
+#endif
 #endif
 #endif
 
