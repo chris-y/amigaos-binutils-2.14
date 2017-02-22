@@ -1229,7 +1229,7 @@ _bfd_archive_bsd_construct_extended_name_table (abfd, tabloc, tablen, name)
      bfd_size_type *tablen;
      const char **name;
 {
-  *name = "ARFILENAMES/";
+  *name = "ARFILENAMES/    ";
   return _bfd_construct_extended_name_table (abfd, FALSE, tabloc, tablen);
 }
 
@@ -1242,7 +1242,7 @@ _bfd_archive_coff_construct_extended_name_table (abfd, tabloc, tablen, name)
      bfd_size_type *tablen;
      const char **name;
 {
-  *name = "//";
+  *name = "//              ";
   return _bfd_construct_extended_name_table (abfd, TRUE, tabloc, tablen);
 }
 
