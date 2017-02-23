@@ -111,8 +111,7 @@ bfd_boolean
 amiga_final_link PARAMS ((bfd *, struct bfd_link_info *));
 bfd_boolean
 aout_amiga_final_link PARAMS ((bfd *, struct bfd_link_info *));
-static int
-my_get_offset PARAMS ((arelent *r, PTR data, int flags));
+
 static bfd_reloc_status_type
 my_add_to PARAMS ((arelent *, PTR, int, int));
 static void amiga_update_target_section PARAMS ((sec_ptr));
@@ -249,8 +248,10 @@ get_relocated_section_contents (abfd, link_info, link_order, data,
 		  break;
 		case bfd_reloc_outofrange:
 		default:
-		  DPRINT(10,("get_rel_sec_cont fails, perform reloc "
-			     "returned $%x\n",r));
+		  fprintf(stderr, "perform reloc "
+			     "returned $%x while processing '%s':%s\n",r,
+			  (*(*parent)->sym_ptr_ptr)->the_bfd->filename,
+			  (*(*parent)->sym_ptr_ptr)->name);
 		  abort ();
 		  break;
 		}
@@ -270,51 +271,8 @@ error_return:
   return NULL;
 }
 
-static int my_get_offset (r, data, flags)
-  arelent *r;
-  PTR data;
-int flags;
-{
-  bfd_byte *p = ((bfd_byte *)data) + r->address;
-  int val;
-  asymbol *sym = *(r->sym_ptr_ptr);
 
-  DPRINT(5, ("Entering my_get_offset for %s \n", sym->name));
-
-  switch (r->howto->size)
-    {
-    case 0: /* byte size */
-      if ((flags & ADDEND_UNSIGNED) == 0)
-	val = ((*p & 0xff) ^ 0x80) - 0x80;
-      else
-	val = (*p & 0xff);
-      break;
-
-    case 1: /* word size */
-      if ((flags & ADDEND_UNSIGNED) == 0)
-	val = bfd_getb_signed_16(p);
-      else
-	val = bfd_getb16(p);
-      break;
-
-    case 2: /* long word */
-      val = bfd_getb_signed_32(p);
-      break;
-
-    default: /* Error */
-      val = 0x5a5a5a5a;
-      break;
-    }/* Of switch */
-
-  DPRINT(5, ("Leaving my_get_offset\n"));
-  return val;
-}
-
-
-
-/* Add a value to a location.
- * The code is patched directly by adding the 'add' to the existing value at data[r->address]
-*/
+/* Add a value to a location */
 static bfd_reloc_status_type
 my_add_to (r, data, add, flags)
      arelent *r;
@@ -639,7 +597,6 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
   /* Try to apply the reloc */
 
   sym=*(r->sym_ptr_ptr);
-
   target_section=sym->section;
 
   if (bfd_is_und_section(target_section)) /* Error */
@@ -707,9 +664,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
       else
 	{
 	  if (amiga_base_relative)
-	    {
-	      aout_update_target_section (target_section);
-	    }
+	    aout_update_target_section (target_section);
 	  relocation=0;
 	  copy=TRUE;
 	  copy=!amiga_base_relative32;
@@ -783,14 +738,8 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	  relocation = sym->value + target_section->output_offset;
 	  /* if the symbol is in .bss, subtract the offset that gas has put
 	     into the opcode */
-//	  if (target_section->index == 2)
-//		  relocation -= adata(abfd).datasec->_raw_size;
-	  // SBF: nope. rather subtract the existing offset.
 	  if (target_section->index == 2)
-	    {
-	      relocation -= my_get_offset(r, data, flags);
-	      r->addend = 0;
-	    }
+	    relocation -= adata(abfd).datasec->_raw_size;
 	  DPRINT(20,("symbol=%s (0x%lx)\nsection %s (0x%lx; %s; output=0x%lx)"
 		     "\nrelocation @0x%lx\n", sym->name, sym->value,
 		     target_section->name, target_section,
