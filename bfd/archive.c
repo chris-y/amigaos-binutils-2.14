@@ -1096,6 +1096,7 @@ _bfd_slurp_extended_name_table (abfd)
 	return FALSE;
 
       if (strncmp (nextname, "ARFILENAMES/    ", 16) != 0 &&
+	  strcmp (nextname, "ARFILENAMES/") != 0 &&
 	  strncmp (nextname, "//              ", 16) != 0)
 	{
 	  bfd_ardata (abfd)->extended_names = NULL;
