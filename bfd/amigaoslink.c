@@ -705,7 +705,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	    - (AMIGA_DATA(target_section->output_section->owner))->a4init;
 	  /* if the symbol is in .bss, subtract the offset that gas has put
 	     into the opcode */
-	  if (target_section->index == 2 && sym->flags != 2)
+	  if (target_section->index == 2 && sym->flags != BSF_GLOBAL)
 	    relocation -= adata(abfd).datasec->_raw_size;
 	  DPRINT(20,("symbol=%s (0x%lx)\nsection %s (0x%lx; %s; output=0x%lx)"
 		     "\nrelocation @0x%lx\n", sym->name, sym->value,
