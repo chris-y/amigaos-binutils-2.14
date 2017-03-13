@@ -20,6 +20,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <config.h>
 
 /* end standard C headers. */
 

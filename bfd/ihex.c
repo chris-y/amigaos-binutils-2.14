@@ -119,6 +119,7 @@ The MRI compiler uses this, which is a repeat of type 5:
    20..21	Carriage return, line feed
 */
 
+#include "config.h"
 #include "bfd.h"
 #include "sysdep.h"
 #include "libbfd.h"
@@ -366,12 +367,12 @@ ihex_scan (abfd)
 	  chksum = len + addr + (addr >> 8) + type;
 	  for (i = 0; i < len; i++)
 	    chksum += HEX2 (buf + 2 * i);
-	  if (((- chksum) & 0xff) != (unsigned int) HEX2 (buf + 2 * i))
+	  if (((- (int)chksum) & 0xff) != (unsigned int) HEX2 (buf + 2 * i))
 	    {
 	      (*_bfd_error_handler)
 		(_("%s:%u: bad checksum in Intel Hex file (expected %u, found %u)"),
 		 bfd_archive_filename (abfd), lineno,
-		 (- chksum) & 0xff, (unsigned int) HEX2 (buf + 2 * i));
+		 (- (int)chksum) & 0xff, (unsigned int) HEX2 (buf + 2 * i));
 	      bfd_set_error (bfd_error_bad_value);
 	      goto error_return;
 	    }
@@ -788,7 +789,7 @@ ihex_write_record (abfd, count, addr, type, data)
       chksum += *data;
     }
 
-  TOHEX (p, (- chksum) & 0xff);
+  TOHEX (p, (- (int)chksum) & 0xff);
   p[2] = '\r';
   p[3] = '\n';
 

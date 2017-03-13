@@ -13,10 +13,10 @@ will never return a @code{NULL} pointer.
 
 */
 
+#include "config.h"
 #include <stdio.h>
 
 #include "libiberty.h"
-#include "config.h"
 
 #ifdef VMS
 #include <errno.h>

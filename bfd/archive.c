@@ -127,6 +127,7 @@ DESCRIPTION
  " 18             " - Long name 18 characters long, extended pseudo-BSD.
  */
 
+#include "config.h"
 #include "bfd.h"
 #include "sysdep.h"
 #include "libbfd.h"

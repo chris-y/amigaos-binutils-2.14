@@ -42,11 +42,24 @@ enum {
 
 static void obj_amiga_line PARAMS ((int));
 static void obj_amiga_weak PARAMS ((int));
+static void obj_amiga_section PARAMS((int));
+static char * obj_amiga_section_name PARAMS ((void));
 
 const pseudo_typeS obj_pseudo_table[] =
 {
   {"line", obj_amiga_line, 0},	/* source code line number */
   {"weak", obj_amiga_weak, 0},	/* mark symbol as weak.  */
+
+  {"2byte", cons, 2},
+  {"4byte", cons, 4},
+  {"8byte", cons, 8},
+  {"hidden", s_ignore, 0},
+  {"local", s_ignore, 0},
+  {"section", obj_amiga_section, 0},
+  {"section.s", obj_amiga_section, 0},
+  {"sect", obj_amiga_section, 0},
+  {"sect.s", obj_amiga_section, 0},
+  {"swbeg", s_ignore, 0},
 
   /* other stuff */
   {"ABORT", s_abort, 0},
@@ -169,6 +182,58 @@ obj_amiga_frob_file_before_fix ()
 }
 
 #endif /* BFD_ASSEMBLER */
+
+/* Get name of section.  */
+static char *
+obj_amiga_section_name ()
+{
+  char *name;
+
+  SKIP_WHITESPACE ();
+  if (*input_line_pointer == '"')
+    {
+      int dummy;
+
+      name = demand_copy_C_string (&dummy);
+      if (name == NULL)
+	{
+	  ignore_rest_of_line ();
+	  return NULL;
+	}
+    }
+  else
+    {
+      char *end = input_line_pointer;
+
+      while (0 == strchr ("\n\t,; ", *end))
+	end++;
+      if (end == input_line_pointer)
+	{
+	  as_warn (_("missing name"));
+	  ignore_rest_of_line ();
+	  return NULL;
+	}
+
+      name = xmalloc (end - input_line_pointer + 1);
+      memcpy (name, input_line_pointer, end - input_line_pointer);
+      name[end - input_line_pointer] = '\0';
+      input_line_pointer = end;
+    }
+  SKIP_WHITESPACE ();
+  return name;
+}
+
+
+static void obj_amiga_section(int push) {
+	char const * name = obj_amiga_section_name();
+	if (name == NULL)
+		return;
+
+	if (0 == strcmp(".rodata", name))
+		s_text();
+	else
+		s_data();
+}
 
 static void
 obj_amiga_line (ignore)

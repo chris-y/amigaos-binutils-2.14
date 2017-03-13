@@ -409,9 +409,9 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
 
   sym=*(r->sym_ptr_ptr);
 
-  /* FIXME: XXX */
-   if (0 && sym->udata.p)
-     sym = ((struct generic_link_hash_entry *) sym->udata.p)->sym;
+// SBF: no idea what to fix here...?? /* FIXME: XXX */
+//   if (0 && sym->udata.p)
+//     sym = ((struct generic_link_hash_entry *) sym->udata.p)->sym;
 
   target_section=sym->section;
 
@@ -609,7 +609,12 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	}
       else if (sec->output_section!=target_section->output_section)
 	{
-	  if ((target_section->output_section->flags&SEC_DATA)!=0)
+	  // SBF: the if statement has been fixed, but the linker does no longer work.
+	  // if ((target_section->output_section->flags&SEC_DATA)!=0)
+	  // I replaced it with the old (obvious bogus) statement
+	  // TODO: a better fix?
+	  //if (target_section->output_section->flags & (SEC_DATA != 0))
+	  if (amiga_base_relative)
 	    goto baserel; /* Dirty, but no code duplication.. */
 	  bfd_msg ("pc relative relocation out-of-range in section %s. "
 		   "Relocation was to symbol %s",sec->name,sym->name);
@@ -624,7 +629,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	{
 	  /* Same section, this is a pc relative hunk... */
 	  DPRINT(5,("Reloc to same section...\n"));
-	  relocation=-(r->address+sec->output_offset);
+	  relocation=-(long)(r->address+sec->output_offset);
 	}
       break;
 
@@ -700,7 +705,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	    - (AMIGA_DATA(target_section->output_section->owner))->a4init;
 	  /* if the symbol is in .bss, subtract the offset that gas has put
 	     into the opcode */
-	  if (target_section->index == 2)
+	  if (target_section->index == 2 && sym->flags != 2)
 	    relocation -= adata(abfd).datasec->_raw_size;
 	  DPRINT(20,("symbol=%s (0x%lx)\nsection %s (0x%lx; %s; output=0x%lx)"
 		     "\nrelocation @0x%lx\n", sym->name, sym->value,

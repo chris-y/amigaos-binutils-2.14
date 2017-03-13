@@ -118,6 +118,7 @@ DESCRIPTION
 
 #define KEEPIT udata.i
 
+#include "config.h"
 #include "bfd.h"
 #include "sysdep.h"
 #include "safe-ctype.h"
@@ -998,7 +999,7 @@ adjust_z_magic (abfd, execp)
 	text_pad = ((obj_textsec (abfd)->filepos - obj_textsec (abfd)->vma)
 		    & (adata (abfd).page_size - 1));
       else
-	text_pad = ((- obj_textsec (abfd)->vma)
+	text_pad = ((- (signed)obj_textsec (abfd)->vma)
 		    & (adata (abfd).page_size - 1));
     }
 
@@ -4727,7 +4728,7 @@ aout_link_write_other_symbol (h, data)
   H_PUT_16 (output_bfd, 0, outsym.e_desc);
   indx = add_to_stringtab (output_bfd, finfo->strtab, h->root.root.string,
 			   FALSE);
-  if (indx == - (bfd_size_type) 1)
+  if (indx == (bfd_size_type) -1)
     {
       /* FIXME: No way to handle errors.  */
       abort ();

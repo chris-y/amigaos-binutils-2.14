@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
    the file.  objcopy cooperates by specially setting the start
    address to zero by default.  */
 
+#include "config.h"
 #include "bfd.h"
 #include "sysdep.h"
 #include "safe-ctype.h"

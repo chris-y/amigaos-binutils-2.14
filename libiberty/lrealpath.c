@@ -50,6 +50,10 @@ components will be simplified.  The returned value will be allocated using
 #include <string.h>
 #endif
 
+#ifndef DIR_SEPARATOR_S
+#define DIR_SEPARATOR_S "/"
+#endif
+
 /* On GNU libc systems the declaration is only visible with _GNU_SOURCE.  */
 #if defined(HAVE_CANONICALIZE_FILE_NAME) \
     && defined(NEED_DECLARATION_CANONICALIZE_FILE_NAME)

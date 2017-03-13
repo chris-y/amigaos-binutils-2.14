@@ -3377,7 +3377,7 @@ lang_size_sections (s, output_section_statement, prev, fill, dot, relax,
 	 a page could be saved in the data segment.  */
       bfd_vma first, last;
 
-      first = -exp_data_seg.base & (exp_data_seg.pagesize - 1);
+      first = -(long)exp_data_seg.base & (exp_data_seg.pagesize - 1);
       last = exp_data_seg.end & (exp_data_seg.pagesize - 1);
       if (first && last
 	  && ((exp_data_seg.base & ~(exp_data_seg.pagesize - 1))

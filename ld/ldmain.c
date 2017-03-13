@@ -162,7 +162,7 @@ static struct bfd_link_callbacks link_callbacks =
 struct bfd_link_info link_info;
 
 static void
-remove_output ()
+remove_output (void)
 {
   if (output_filename)
     {
@@ -1018,7 +1018,7 @@ multiple_common (info, name, obfd, otype, osize, nbfd, ntype, nsize)
      bfd_vma nsize;
 {
   if (! config.warn_common)
-    return TRUE;
+    return 2;
 
   if (ntype == bfd_link_hash_defined
       || ntype == bfd_link_hash_defweak

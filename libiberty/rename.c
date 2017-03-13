@@ -12,10 +12,10 @@ exists, it is removed.
 
 */
 
-#include "ansidecl.h"
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include "ansidecl.h"
 #include <errno.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

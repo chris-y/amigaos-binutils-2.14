@@ -25,6 +25,7 @@
    This file looks after requests from arparse.y, to provide the MRI
    style librarian command syntax + 1 word LIST.  */
 
+#include "config.h"
 #include "bfd.h"
 #include "arsup.h"
 #include "libiberty.h"

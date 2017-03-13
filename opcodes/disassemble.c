@@ -391,6 +391,8 @@ disassembler_usage (stream)
 #ifdef ARCH_powerpc
   print_ppc_disassembler_options (stream);
 #endif
-
+#ifdef ARCH_m68k
+  print_m68k_disassembler_options (stream);
+#endif
   return;
 }

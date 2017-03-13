@@ -132,6 +132,10 @@ int elf_s_get_other PARAMS ((symbolS *));
   (elf_symbol (symbol_get_bfdsym (S))->internal_elf_sym.st_other = (V))
 #endif
 
+#ifndef S_GET_TYPE
+#define S_GET_TYPE(S)	(0)
+#endif
+
 extern asection *gdb_section;
 
 #ifndef obj_frob_file

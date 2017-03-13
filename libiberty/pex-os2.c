@@ -67,6 +67,7 @@ pwait (pid, status, flags)
 {
   /* ??? Here's an opportunity to canonicalize the values in STATUS.
      Needed?  */
-  int pid = wait (status);
+  //int 
+	  pid = wait (status);
   return pid;
 }

@@ -237,6 +237,9 @@ static segT get_known_segmented_expression PARAMS ((expressionS * expP));
 static void pobegin PARAMS ((void));
 static int get_line_sb PARAMS ((sb *));
 static void generate_file_debug PARAMS ((void));
+void ignore_rest_of_line (void);
+static void ignore_rest_of_line2 (int);
+
 
 void
 read_begin ()
@@ -1425,7 +1428,8 @@ s_comm (ignore)
 #endif /* not OBJ_VMS */
   know (symbolP->sy_frag == &zero_address_frag);
 
-  demand_empty_rest_of_line ();
+  ignore_rest_of_line2 (0);
+  // demand_empty_rest_of_line ();
 
   if (flag_mri)
     mri_comment_end (stop, stopc);
@@ -3168,14 +3172,20 @@ demand_empty_rest_of_line ()
 void
 ignore_rest_of_line ()
 {
+	ignore_rest_of_line2(1);
+}
+
+void
+ignore_rest_of_line2 (int out)
+{
   /* For suspect lines: gives warning.  */
   if (!is_end_of_line[(unsigned char) *input_line_pointer])
     {
       if (ISPRINT (*input_line_pointer))
-	as_warn (_("rest of line ignored; first ignored character is `%c'"),
+	if (out) as_warn (_("rest of line ignored; first ignored character is `%c'"),
 		 *input_line_pointer);
       else
-	as_warn (_("rest of line ignored; first ignored character valued 0x%x"),
+	if (out) as_warn (_("rest of line ignored; first ignored character valued 0x%x"),
 		 *input_line_pointer);
 
       while (input_line_pointer < buffer_limit
@@ -3355,7 +3365,7 @@ parse_repeat_cons PARAMS ((expressionS *exp, unsigned int nbytes));
 
 static void
 cons_worker (nbytes, rva)
-     register int nbytes;	/* 1=.byte, 2=.word, 4=.long.  */
+     register int nbytes;	/* 1=.byte, 2=.word, 4=.long, 8=.8bytes.  */
      int rva;
 {
   int c;

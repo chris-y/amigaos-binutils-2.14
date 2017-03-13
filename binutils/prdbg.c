@@ -22,6 +22,7 @@
 /* This file prints out the generic debugging information, by
    supplying a set of routines to debug_write.  */
 
+#include "config.h"
 #include <stdio.h>
 #include <assert.h>
 
