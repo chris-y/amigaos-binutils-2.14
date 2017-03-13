@@ -246,6 +246,7 @@ extern int print_insn_iq2000            PARAMS ((bfd_vma, disassemble_info *));
 extern disassembler_ftype arc_get_disassembler PARAMS ((void *));
 extern disassembler_ftype cris_get_disassembler PARAMS ((bfd *));
 
+extern void print_m68k_disassembler_options PARAMS ((FILE *));
 extern void print_mips_disassembler_options PARAMS ((FILE *));
 extern void print_ppc_disassembler_options PARAMS ((FILE *));
 extern void print_arm_disassembler_options PARAMS ((FILE *));

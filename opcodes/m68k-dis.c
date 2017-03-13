@@ -25,6 +25,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 
 #include "opcode/m68k.h"
 
+/* Extra info to pass to the disassembler address printing function.  */
+struct objdump_disasm_info
+{
+  bfd *abfd;
+  asection *sec;
+  bfd_boolean require_sec;
+};
+
+/* Support display of symbols in baserel offsets. */
+static void
+parse_disassembler_options (char *);
+
+static int dump_baserel;
+
 /* Local function prototypes */
 
 static int
@@ -192,6 +206,14 @@ print_insn_m68k (memaddr, info)
   int major_opcode;
   static int numopcodes[16];
   static const struct m68k_opcode **opcodes[16];
+
+  if (info->disassembler_options)
+    {
+      parse_disassembler_options (info->disassembler_options);
+
+      /* To avoid repeated parsing of these options, we remove them here.  */
+      info->disassembler_options = NULL;
+    }
 
   if (!opcodes[0])
     {
@@ -784,7 +806,13 @@ print_insn_arg (d, buffer, p0, addr, info)
 
 	case 5:
 	  val = NEXTWORD (p);
-	  (*info->fprintf_func) (info->stream, "%s@(%d)", regname, val);
+	  if (dump_baserel)
+	    {
+	      print_base(regno, val, info);
+	      (*info->fprintf_func) (info->stream, ")");
+	    }
+	  else
+	    (*info->fprintf_func) (info->stream, "%s@(%d)", regname, val);
 	  break;
 
 	case 6:
@@ -1321,7 +1349,55 @@ print_base (regno, disp, info)
       else
 	(*info->fprintf_func) (info->stream, "%s@(", reg_names[regno]);
 
-      sprintf_vma (buf, disp);
-      (*info->fprintf_func) (info->stream, "%s", buf);
+      /* Dump the symbol instead of the number*/
+      if (dump_baserel && regno == 12)
+	{
+	  static int offset;
+
+	  /* Swap section to .data */
+	  struct objdump_disasm_info *aux =
+	      (struct objdump_disasm_info *) info->application_data;
+	  asection * text = aux->sec;
+	  aux->sec = text->next;
+
+	  /* Try handling a4 set to 0 or set to -0x7ffe.
+	   * TODO: search the correct offset via lea statement.
+	   */
+	  if (disp & 0x80000000)
+	    offset = 0x7ffe;
+	  (*info->print_address_func) (disp + offset, info);
+
+	  /* restore section to .text */
+	  aux->sec = text;
+	}
+      else
+	{
+	  sprintf_vma (buf, disp);
+          (*info->fprintf_func) (info->stream, "%s", buf);
+	}
     }
+}
+
+
+void print_m68k_disassembler_options PARAMS ((FILE * stream))
+{
+  fprintf (stream, _("\n\
+The following m68k specific disassembler options are supported for use with\n\
+the -M switch:\n"));
+  fprintf (stream, "  a4              Display labels for base relative offsets\n");
+}
+
+/*
+ * Support -M a4
+ */
+static void
+parse_disassembler_options (char * options)
+{
+  char *p;
+
+  p = options;
+  while (*p && *p <= 32)
+    ++p;
+
+  dump_baserel = !strncmp(p, "a4", 2);
 }
