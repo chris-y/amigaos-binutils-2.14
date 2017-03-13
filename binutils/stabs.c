@@ -25,6 +25,7 @@
    code.  The job it does is somewhat different, because it is not
    trying to identify the correct address for anything.  */
 
+#include "config.h"
 #include <stdio.h>
 
 #include "bfd.h"
@@ -333,7 +334,7 @@ parse_number (pp, poverflow)
       if (! overflow)
 	{
 	  if (neg)
-	    v = - v;
+	    v = - (signed)v;
 	  return v;
 	}
     }
@@ -4170,7 +4171,7 @@ stab_demangle_qualified (minfo, pp, ptype)
 	++*pp;
       if (**pp == 't')
 	{
-	  char *name;
+	  char *name = 0;
 
 	  if (! stab_demangle_template (minfo, pp,
 					ptype != NULL ? &name : NULL))
@@ -4627,7 +4628,7 @@ stab_demangle_arg (minfo, pp, pargs, pcount, palloc)
      unsigned int *palloc;
 {
   const char *start;
-  debug_type type;
+  debug_type type = 0;
 
   start = *pp;
   if (! stab_demangle_type (minfo, pp,
@@ -4753,7 +4754,7 @@ stab_demangle_type (minfo, pp, ptype)
     case 'F':
       /* A function.  */
       {
-	debug_type *args;
+	debug_type *args = 0;
 	bfd_boolean varargs;
 
 	++*pp;
@@ -5146,7 +5147,7 @@ stab_demangle_fund_type (minfo, pp, ptype)
 
     case 't':
       {
-	char *name;
+	char *name = 0;
 
 	if (! stab_demangle_template (minfo, pp,
 				      ptype != NULL ? &name : NULL))

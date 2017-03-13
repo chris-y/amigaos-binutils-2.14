@@ -96,8 +96,6 @@ int amiga_attribute = 0;
 /* This one is used to indicate base-relative linking */
 int amiga_base_relative = 0;
 
-static int amiga_base_relative32 = 0;
-
 /* This one is used to indicate -resident linking */
 int amiga_resident = 0;
 
@@ -149,7 +147,7 @@ get_relocated_section_contents (abfd, link_info, link_order, data,
   bfd_reloc_status_type (*reloc_func)(bfd *, arelent *, PTR, sec_ptr,
 				      bfd *, char **);
 
-  DPRINT(5,("\n----\nEntering get_rel_sec_cont\n"));
+  DPRINT(5,("Entering get_rel_sec_cont\n"));
 
   if (reloc_size < 0)
     goto error_return;
@@ -193,7 +191,7 @@ get_relocated_section_contents (abfd, link_info, link_order, data,
     {
       arelent **parent;
 
-      DPRINT(5,("doing relocs section=%s at %p, output=%s reloc_count=%ld\n", input_section->name, reloc_vector, input_section->output_section->name, reloc_count));
+      DPRINT(5,("reloc_count=%ld\n",reloc_count));
 
       for (parent = reloc_vector; *parent != (arelent *) NULL;
 	   parent++)
@@ -201,10 +199,8 @@ get_relocated_section_contents (abfd, link_info, link_order, data,
 	  char *error_message = (char *) NULL;
 	  bfd_reloc_status_type r;
 
-	  DPRINT(5,("apply reloc: %s in %s type=%d\n",
-		  (*((*parent)->sym_ptr_ptr))->name,
-		  (*((*parent)->sym_ptr_ptr))->section->name,
-		  (*parent)->howto->type));
+	  DPRINT(5,("Applying a reloc\nparent=%lx, reloc_vector=%lx, "
+		    "*parent=%lx\n",parent,reloc_vector,*parent));
 	  r=(*reloc_func) (input_bfd,
 			   *parent,
 			   (PTR) data,
@@ -248,10 +244,8 @@ get_relocated_section_contents (abfd, link_info, link_order, data,
 		  break;
 		case bfd_reloc_outofrange:
 		default:
-		  fprintf(stderr, "perform reloc "
-			     "returned $%x while processing '%s':%s\n",r,
-			  (*(*parent)->sym_ptr_ptr)->the_bfd->filename,
-			  (*(*parent)->sym_ptr_ptr)->name);
+		  DPRINT(10,("get_rel_sec_cont fails, perform reloc "
+			     "returned $%x\n",r));
 		  abort ();
 		  break;
 		}
@@ -282,9 +276,8 @@ my_add_to (r, data, add, flags)
   bfd_reloc_status_type ret=bfd_reloc_ok;
   bfd_byte *p=((bfd_byte *)data)+r->address;
   int val;
-  asymbol *sym=*(r->sym_ptr_ptr);
 
-  DPRINT(5,("Entering add_value for %s with add: %x\n", sym->name, add));
+  DPRINT(5,("Entering add_value\n"));
 
   switch (r->howto->size)
     {
@@ -397,7 +390,7 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
   bfd_boolean copy;
   int relocation,flags;
 
-  DPRINT(5,("\nEntering APR\nflavour is %d (amiga_flavour=%d, aout_flavour=%d)\n",
+  DPRINT(5,("Entering APR\nflavour is %d (amiga_flavour=%d, aout_flavour=%d)\n",
 	    bfd_get_flavour (sec->owner), bfd_target_amiga_flavour,
 	    bfd_target_aout_flavour));
 
@@ -416,7 +409,7 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
 
   sym=*(r->sym_ptr_ptr);
 
-// ?? /* FIXME: XXX */
+// SBF: no idea what to fix here...?? /* FIXME: XXX */
 //   if (0 && sym->udata.p)
 //     sym = ((struct generic_link_hash_entry *) sym->udata.p)->sym;
 
@@ -430,14 +423,7 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
 
   relocation=0; flags=RELOC_SIGNED; copy=FALSE; ret=bfd_reloc_ok;
 
-  DPRINT(5,("amigaRELOC: %s: size=%u\n",r->howto->name,bfd_get_reloc_size(r->howto)));
-  DPRINT(10,("target=%s, target->out=%s(%lx), sec->out=%s(%lx), symbol=%s\n",
-             target_section->name,
-	     target_section->output_section->name,
-	     target_section->output_section,
-	     sec->output_section->name,
-	     sec->output_section,
-	     sym->name));
+  DPRINT(5,("%s: size=%u\n",r->howto->name,bfd_get_reloc_size(r->howto)));
   switch (r->howto->type)
     {
     case H_ABS32:
@@ -455,8 +441,6 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	  relocation=0;
 	  copy=TRUE;
 	}
-      if (amiga_base_relative32 && 0 == strcmp("___a4_init", sym->name))
-	relocation -= (AMIGA_DATA(target_section->output_section->owner))->a4init;
       break;
 
     case H_PC8: /* pcrel */
@@ -484,7 +468,6 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
     case H_SD8: /* baserel */
     case H_SD16:
     case H_SD32:
-      amiga_base_relative32 |= r->howto->type == H_SD32;
       /* Relocs are always relative to the symbol ___a4_init */
       /* Relocs to .bss section are converted to a reloc to .data section,
 	 since .bss section contains only COMMON sections...... and should
@@ -506,13 +489,12 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
       else
 	{
 	  amiga_update_target_section (target_section);
-	  relocation = sym->value + target_section->output_offset + r->addend;
+
+	  relocation = sym->value + target_section->output_offset
+	    - (AMIGA_DATA(target_section->output_section->owner))->a4init
+	    + r->addend;
 	  flags|=ADDEND_UNSIGNED;
 	}
-
-      if (amiga_base_relative && r->howto->type != H_SD32)
-	relocation -= (AMIGA_DATA(target_section->output_section->owner))->a4init;
-
       break;
 
     default:
@@ -527,7 +509,7 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
 
   if (copy) /* Copy reloc to output section */
     {
-      DPRINT(5,("Copying reloc to %s:%s at %d\n", sec->output_section->name, sym->name, r->address));
+      DPRINT(5,("Copying reloc\n"));
       target_section=sec->output_section;
       r->address+=sec->output_offset;
       target_section->orelocation[target_section->reloc_count++]=r;
@@ -582,7 +564,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
   bfd_boolean copy;
   int relocation,flags;
 
-  DPRINT(5,("\nEntering aout_perf_reloc\n"));
+  DPRINT(5,("Entering aout_perf_reloc\n"));
 
   /* If obfd==NULL: Apply the reloc, if possible. */
   /* Else: Modify it and return */
@@ -611,13 +593,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 
   relocation=0; flags=RELOC_SIGNED; copy=FALSE; ret=bfd_reloc_ok;
 
-  DPRINT(10,("aoutRELOC: %s, %d: size=%u\n",r->howto->name,r->howto->type,bfd_get_reloc_size(r->howto)));
-  DPRINT(10,("target->out=%s(%lx), sec->out=%s(%lx), symbol=%s\n",
-	     target_section->output_section->name,
-	     target_section->output_section,
-	     sec->output_section->name,
-	     sec->output_section,
-	     sym->name));
+  DPRINT(10,("RELOC: %s: size=%u\n",r->howto->name,bfd_get_reloc_size(r->howto)));
   switch (r->howto->type)
     {
     case H_ABS8: /* 8/16 bit reloc, pc relative or absolute */
@@ -642,6 +618,11 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	    goto baserel; /* Dirty, but no code duplication.. */
 	  bfd_msg ("pc relative relocation out-of-range in section %s. "
 		   "Relocation was to symbol %s",sec->name,sym->name);
+	  DPRINT(10,("Section %s, target %s: Reloc out-of-range...not same "
+		     "section, aout_perf\nsec->out=%s, target->out=%s, "
+		     "offset=%lx\n",sec->name,target_section->name,
+		     sec->output_section->name,
+		     target_section->output_section->name,r->address));
 	  ret=bfd_reloc_outofrange;
 	}
       else
@@ -653,7 +634,6 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
       break;
 
     case H_ABS32: /* 32 bit reloc, pc relative or absolute */
-      DPRINT(5, ("32 bit reloc, pc relative or absolute: %s=%d, target_sec_offset=%d, add=%d\n", sym->name, sym->value, target_section->output_offset, r->addend));
       if (bfd_is_abs_section(target_section)) /* Ref to absolute hunk */
 	relocation=sym->value;
       else if (bfd_is_com_section(target_section)) /* ref to common */
@@ -667,30 +647,18 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	    aout_update_target_section (target_section);
 	  relocation=0;
 	  copy=TRUE;
-	  copy=!amiga_base_relative32;
 	}
-      if (amiga_base_relative32)
-	{
-	  relocation = sym->value + target_section->output_offset;
-	  flags|=ADDEND_UNSIGNED;
-	  copy = sec->name == target_section->name; // .text->.text or .data->.data
-
-	  if (copy)
-	    {
-			relocation = 0;
-	    }
-	  else if(0 == strcmp("___a4_init", sym->name))
-	    {
-	      relocation = - (long)(AMIGA_DATA(target_section->output_section->owner))->a4init;
-	      copy=TRUE;
-	    }
-	}
+      DPRINT(10,("target->out=%s(%lx), sec->out=%s(%lx), symbol=%s\n",
+		 target_section->output_section->name,
+		 target_section->output_section,
+		 sec->output_section->name,
+		 sec->output_section,
+		 sym->name));
       break;
 
     case H_PC8: /* pcrel */
     case H_PC16:
     case H_PC32:
-	DPRINT(10,("pcrel: %s\n", sym->name));
       if (bfd_is_abs_section(target_section)) /* Ref to absolute hunk */
 	relocation=sym->value;
       else if (sec->output_section!=target_section->output_section) /* Error */
@@ -707,9 +675,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 
     case H_SD16: /* baserel */
     case H_SD32:
-      amiga_base_relative32 |= r->howto->type == H_SD32;
     baserel:
-	DPRINT(10,("baserel: %s\n", sym->name));
       /* We use the symbol ___a4_init as base */
       if (bfd_is_abs_section(target_section))
 	relocation=sym->value;
@@ -735,10 +701,11 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	{
 	  aout_update_target_section (target_section);
 
-	  relocation = sym->value + target_section->output_offset;
+	  relocation = sym->value + target_section->output_offset
+	    - (AMIGA_DATA(target_section->output_section->owner))->a4init;
 	  /* if the symbol is in .bss, subtract the offset that gas has put
 	     into the opcode */
-	  if (target_section->index == 2)
+	  if (target_section->index == 2 && sym->flags != 2)
 	    relocation -= adata(abfd).datasec->_raw_size;
 	  DPRINT(20,("symbol=%s (0x%lx)\nsection %s (0x%lx; %s; output=0x%lx)"
 		     "\nrelocation @0x%lx\n", sym->name, sym->value,
@@ -747,10 +714,6 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 		     r->address));
 	  flags|=ADDEND_UNSIGNED;
 	}
-
-      if (amiga_base_relative && r->howto->type != H_SD32 && r->howto->type != H_ABS32)
-	relocation -= (AMIGA_DATA(target_section->output_section->owner))->a4init;
-
       DPRINT(10,("target->out=%s(%lx), sec->out=%s(%lx), symbol=%s\n",
 		 target_section->output_section->name,
 		 target_section->output_section,
@@ -771,7 +734,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 
   if (copy) /* Copy reloc to output section */
     {
-      DPRINT(5,("Copying reloc to %s:%s at %d\n", sec->output_section->name, sym->name, r->address));
+      DPRINT(5,("Copying reloc\n"));
       target_section=sec->output_section;
       r->address+=sec->output_offset;
       target_section->orelocation[target_section->reloc_count++]=r;

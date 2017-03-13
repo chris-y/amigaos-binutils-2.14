@@ -21,6 +21,7 @@
 
 /* This file reads and writes IEEE-695 debugging information.  */
 
+#include "config.h"
 #include <stdio.h>
 #include <assert.h>
 
@@ -3354,7 +3355,7 @@ ieee_read_reference (info, pp)
 {
   const bfd_byte *start;
   bfd_vma flags;
-  const char *class, *name;
+  const char *class = 0, *name;
   unsigned long classlen, namlen;
   debug_type *pslot;
   debug_type target;

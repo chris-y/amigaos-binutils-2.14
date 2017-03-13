@@ -1622,17 +1622,17 @@ _bfd_generic_link_add_one_symbol (info, abfd, name, flags, section, value,
 
 	case CDEF:
 	{
-		/* We have found a definition for a symbol which was
-		   previously common.  */
-		int rr = ((*info->callbacks->multiple_common)
-			(info, h->root.string,
-				h->u.c.p->section->owner, bfd_link_hash_common, h->u.c.size,
-				abfd, bfd_link_hash_defined, (bfd_vma)0));
-		BFD_ASSERT(h->type == bfd_link_hash_common);
-		if (!rr)
-			return FALSE;
-		if (rr == 2)
-			break;
+	  /* We have found a definition for a symbol which was
+	     previously common.  */
+          int rr = ((*info->callbacks->multiple_common)
+                     (info, h->root.string,
+		      h->u.c.p->section->owner, bfd_link_hash_common, h->u.c.size,
+		      abfd, bfd_link_hash_defined, (bfd_vma)0));
+          BFD_ASSERT(h->type == bfd_link_hash_common);
+          if (!rr)
+	    return FALSE;
+          if (rr == 2) /* ignore duplicate symbol */
+            break;
 	}
 	  /* Fall through.  */
 	case DEF:

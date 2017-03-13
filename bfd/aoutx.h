@@ -4728,7 +4728,7 @@ aout_link_write_other_symbol (h, data)
   H_PUT_16 (output_bfd, 0, outsym.e_desc);
   indx = add_to_stringtab (output_bfd, finfo->strtab, h->root.root.string,
 			   FALSE);
-  if (indx == - (long)(bfd_size_type) 1)
+  if (indx == (bfd_size_type) -1)
     {
       /* FIXME: No way to handle errors.  */
       abort ();
