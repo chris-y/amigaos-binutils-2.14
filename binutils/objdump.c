@@ -1315,15 +1315,35 @@ disassemble_bytes (info, disassemble_fn, insns, data,
 	      info->bytes_per_chunk = 0;
 
 #ifdef DISASSEMBLER_NEEDS_RELOCS
+	      /* SBF: workaround for the issue below:
+	       * move relppp until current insn is reached
+	       * and put the relp pointer into the info structure.
+	       * Now the implementation may judge by itself if the flag is correct.
+	       * The pointer is also used to display the correct symbol name.
+	       * For now only used in m68k-ds.c
+	       * */
+	      while ((*relppp) < relppend
+		  && (**relppp)->address < (bfd_vma)addr_offset)
+	        ++(*relppp);
+
+	      if (*relppp < relppend)
+	        info->relp = **relppp;
+	      else
+#endif	      
+	      info->relp = 0;
+
+#ifdef DISASSEMBLER_NEEDS_RELOCS
 	      /* FIXME: This is wrong.  It tests the number of octets
-                 in the last instruction, not the current one.  */
+	       in the last instruction, not the current one.
+	       SBF: read above.  */
+
 	      if (*relppp < relppend
 		  && (**relppp)->address >= addr_offset
 		  && (**relppp)->address <= addr_offset + octets / opb)
-		info->flags = INSN_HAS_RELOC;
+	        info->flags = INSN_HAS_RELOC;
 	      else
 #endif
-		info->flags = 0;
+	      info->flags = 0;
 
 	      octets = (*disassemble_fn) (section->vma + addr_offset, info);
 	      info->fprintf_func = (fprintf_ftype) fprintf;

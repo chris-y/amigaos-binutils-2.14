@@ -823,13 +823,29 @@ print_insn_arg (d, buffer, p0, addr, info)
 	  switch (val & 7)
 	    {
 	    case 0:
-	      val = NEXTWORD (p);
-	      (*info->print_address_func) (val, info);
-	      break;
-
 	    case 1:
-	      uval = NEXTULONG (p);
-	      (*info->print_address_func) (uval, info);
+	      uval = (val & 7) ? NEXTULONG(p) : (unsigned int) NEXTWORD(p);
+
+	      if (info->relp)
+		{
+		  if (info->relp->address <= addr + (p - p0)
+		      && info->relp->sym_ptr_ptr && *info->relp->sym_ptr_ptr)
+		    {
+		      /* Swap section with the correct one. */
+		      struct objdump_disasm_info *aux =
+			  (struct objdump_disasm_info *) info->application_data;
+		      asection * text = aux->sec;
+		      aux->sec = bfd_get_section (*info->relp->sym_ptr_ptr);
+		      (*info->print_address_func) (uval, info);
+
+		      /* restore section to .text */
+		      aux->sec = text;
+		    }
+		  else
+		    (*info->fprintf_func) (info->stream, "%d", uval);
+		}
+	      else
+		(*info->print_address_func) (uval, info);
 	      break;
 
 	    case 2:

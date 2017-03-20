@@ -98,6 +98,10 @@ typedef struct disassemble_info {
      The bottom 16 bits are for the internal use of the disassembler.  */
   unsigned long flags;
 #define INSN_HAS_RELOC	0x80000000
+
+  /* Used if DISASSEMBLER_NEEDS_RELOCS is defined. */
+  arelent *relp;
+
   PTR private_data;
 
   /* Function used to get bytes to disassemble.  MEMADDR is the
@@ -280,6 +284,9 @@ extern void perror_memory PARAMS ((int, bfd_vma, struct disassemble_info *));
    addresses).  */
 extern void generic_print_address
   PARAMS ((bfd_vma, struct disassemble_info *));
+
+extern asection * generic_get_section_for_reloc
+PARAMS((bfd_vma, struct disassemble_info *));
 
 /* Always true.  */
 extern int generic_symbol_at_address
