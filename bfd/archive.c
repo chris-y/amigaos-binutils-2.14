@@ -1756,7 +1756,7 @@ _bfd_write_archive_contents (arch)
       struct ar_hdr hdr;
 
       memset ((char *) (&hdr), 0, sizeof (struct ar_hdr));
-      strcpy (hdr.ar_name, ename);
+      strncpy (hdr.ar_name, ename, 16);
       /* Round size up to even number in archive header.  */
       _bfd_ar_spacepad (hdr.ar_size, sizeof (hdr.ar_size), "%-10ld",
                         (elength + 1) & ~(bfd_size_type) 1);
