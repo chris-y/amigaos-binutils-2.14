@@ -1532,7 +1532,10 @@ load_symbols (entry, place)
   char **matching;
 
   if (entry->loaded)
-    return TRUE;
+    {
+      bfd_link_add_symbols (entry->the_bfd, &link_info);
+      return TRUE;
+    }
 
   ldfile_open_file (entry);
 
@@ -1984,82 +1987,106 @@ ldlang_open_output (statement)
     }
 }
 
+/*
+ * Count the undefined symbols.
+ */
+static unsigned
+count_undef (void)
+{
+  unsigned count = 0;
+  for (struct bfd_link_hash_entry * p = link_info.hash->undefs; p; p = p->next)
+    {
+      if (p->type == bfd_link_hash_undefined || p->type == bfd_link_hash_undefweak)
+	++count;
+    }
+  return count;
+}
+
 /* Open all the input files.  */
 
 static void
-open_input_bfds (s, force)
-     lang_statement_union_type *s;
+open_input_bfds (_s, force)
+     lang_statement_union_type *_s;
      bfd_boolean force;
 {
-  for (; s != (lang_statement_union_type *) NULL; s = s->header.next)
+  /* SBF: add more passes to resolve symbols with already loaded libs / files.
+   * Stop is count of undefined symbols does not change.
+   */
+  for (unsigned pass = 0; _s;)
     {
-      switch (s->header.type)
+      for (lang_statement_union_type *s = _s; s != (lang_statement_union_type *) NULL; s = s->header.next)
 	{
-	case lang_constructors_statement_enum:
-	  open_input_bfds (constructor_list.head, force);
-	  break;
-	case lang_output_section_statement_enum:
-	  open_input_bfds (s->output_section_statement.children.head, force);
-	  break;
-	case lang_wild_statement_enum:
-	  /* Maybe we should load the file's symbols.  */
-	  if (s->wild_statement.filename
-	      && ! wildcardp (s->wild_statement.filename))
-	    (void) lookup_name (s->wild_statement.filename);
-	  open_input_bfds (s->wild_statement.children.head, force);
-	  break;
-	case lang_group_statement_enum:
-	  {
-	    struct bfd_link_hash_entry *undefs;
+	  if (pass && s->header.type != lang_input_statement_enum)
+	    continue;
 
-	    /* We must continually search the entries in the group
-	       until no new symbols are added to the list of undefined
-	       symbols.  */
-
-	    do
-	      {
-		undefs = link_info.hash->undefs_tail;
-		open_input_bfds (s->group_statement.children.head, TRUE);
-	      }
-	    while (undefs != link_info.hash->undefs_tail);
-	  }
-	  break;
-	case lang_target_statement_enum:
-	  current_target = s->target_statement.target;
-	  break;
-	case lang_input_statement_enum:
-	  if (s->input_statement.real)
+	  switch (s->header.type)
 	    {
-	      lang_statement_list_type add;
+	    case lang_constructors_statement_enum:
+	      open_input_bfds (constructor_list.head, force);
+	      break;
+	    case lang_output_section_statement_enum:
+	      open_input_bfds (s->output_section_statement.children.head, force);
+	      break;
+	    case lang_wild_statement_enum:
+	      /* Maybe we should load the file's symbols.  */
+	      if (s->wild_statement.filename && !wildcardp (s->wild_statement.filename))
+		(void) lookup_name (s->wild_statement.filename);
+	      open_input_bfds (s->wild_statement.children.head, force);
+	      break;
+	    case lang_group_statement_enum:
+	      {
+		struct bfd_link_hash_entry *undefs;
 
-	      s->input_statement.target = current_target;
+		/* We must continually search the entries in the group
+		 until no new symbols are added to the list of undefined
+		 symbols.  */
 
-	      /* If we are being called from within a group, and this
-                 is an archive which has already been searched, then
-                 force it to be researched unless the whole archive
-		 has been loaded already.  */
-	      if (force
-		  && !s->input_statement.whole_archive
-		  && s->input_statement.loaded
-		  && bfd_check_format (s->input_statement.the_bfd,
-				       bfd_archive))
-		s->input_statement.loaded = FALSE;
-
-	      lang_list_init (&add);
-
-	      if (! load_symbols (&s->input_statement, &add))
-		config.make_executable = FALSE;
-
-	      if (add.head != NULL)
+		do
+		  {
+		    undefs = link_info.hash->undefs_tail;
+		    open_input_bfds (s->group_statement.children.head, TRUE);
+		  }
+		while (undefs != link_info.hash->undefs_tail);
+	      }
+	      break;
+	    case lang_target_statement_enum:
+	      current_target = s->target_statement.target;
+	      break;
+	    case lang_input_statement_enum:
+	      if (s->input_statement.real)
 		{
-		  *add.tail = s->header.next;
-		  s->header.next = add.head;
+		  lang_statement_list_type add;
+
+		  s->input_statement.target = current_target;
+
+		  /* If we are being called from within a group, and this
+		   is an archive which has already been searched, then
+		   force it to be researched unless the whole archive
+		   has been loaded already.  */
+		  if (force && !s->input_statement.whole_archive && s->input_statement.loaded
+		      && bfd_check_format (s->input_statement.the_bfd, bfd_archive))
+		    s->input_statement.loaded = FALSE;
+
+		  lang_list_init (&add);
+
+		  if (!load_symbols (&s->input_statement, &add))
+		    config.make_executable = FALSE;
+
+		  if (add.head != NULL)
+		    {
+		      *add.tail = s->header.next;
+		      s->header.next = add.head;
+		    }
 		}
+	      break;
+	    default:
+	      break;
 	    }
-	  break;
-	default:
-	  break;
 	}
+      unsigned n = count_undef ();
+      if (pass == n)
+	break;
+      pass = n;
     }
 }
 
