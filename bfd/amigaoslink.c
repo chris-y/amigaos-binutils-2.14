@@ -43,7 +43,6 @@ the sun3 backend only in these details:
 	o The routine to get the relocated section contents is
 	  @code{get_relocated_section_contents}.
 
-This ensures that the link is performed properly, but has the side effect of
 loosing performance.
 
 The amiga bfd code uses the same functions since they check for the used flavour.
@@ -115,7 +114,6 @@ my_add_to PARAMS ((arelent *, PTR, int, int));
 static void amiga_update_target_section PARAMS ((sec_ptr));
 static bfd_reloc_status_type
 amiga_perform_reloc PARAMS ((bfd *, arelent *, PTR, sec_ptr, bfd *, char **));
-static void aout_update_target_section PARAMS ((sec_ptr));
 static bfd_reloc_status_type
 aout_perform_reloc PARAMS ((bfd *, arelent *, PTR, sec_ptr, bfd *, char **));
 static bfd_boolean
@@ -373,6 +371,35 @@ amiga_update_target_section (target_section)
     }
 }
 
+/* For pc-relative linking place .bss symbols in the .data section.
+ * Then place all .data symbols into .text section
+ */
+static void
+amiga_update_target_section_pcrel(target_section)
+sec_ptr target_section;
+{
+	amiga_update_target_section(target_section);
+	/* If target->out is .data, add the value of the .text section to
+	sym->value and set new output_section */
+	/* If we access a symbol in the .data section, we have to convert
+	this to an access to .text section */
+	/* This is done through a change to the output section of
+	the symbol.. */
+	if (!strcmp(target_section->output_section->name, ".data"))
+	{
+		/* get value for .data section */
+		bfd *ibfd;
+		sec_ptr s;
+
+		ibfd = target_section->output_section->owner;
+		for (s = ibfd->sections; s != NULL; s = s->next)
+			if (!strcmp(s->name, ".text"))
+			{
+				target_section->output_offset += s->_raw_size;
+				target_section->output_section = s;
+			}
+	}
+}
 
 /* Perform an Amiga relocation */
 static bfd_reloc_status_type
@@ -452,13 +479,18 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	{
 	  ret=bfd_reloc_undefined;
 	}
+#if 0
       else if (sec->output_section!=target_section->output_section) /* Error */
 	{
 	  DPRINT(5,("pc relative, but out-of-range\n"));
 	  ret=bfd_reloc_outofrange;
 	}
+#endif
       else /* Same section */
 	{
+		if (sec->output_section != target_section->output_section)
+			amiga_update_target_section_pcrel(target_section);
+
 	  DPRINT(5,("PC relative\n"));
 	  relocation = sym->value + target_section->output_offset
 	    - (r->address + sec->output_offset);
@@ -517,34 +549,6 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
     }
   DPRINT(5,("Leaving amiga_perf_reloc with %d (OK=%d)\n",ret,bfd_reloc_ok));
   return ret;
-}
-
-
-/* For base-relative linking place .bss symbols in the .data section.  */
-static void
-aout_update_target_section (target_section)
-     sec_ptr target_section;
-{
-  /* If target->out is .bss, add the value of the .data section to
-     sym->value and set new output_section */
-  /* If we access a symbol in the .bss section, we have to convert
-     this to an access to .data section */
-  /* This is done through a change to the output section of
-     the symbol.. */
-  if (!strcmp(target_section->output_section->name,".bss"))
-    {
-      /* get value for .data section */
-      bfd *ibfd;
-      sec_ptr s;
-
-      ibfd=target_section->output_section->owner;
-      for (s=ibfd->sections;s!=NULL;s=s->next)
-	if (!strcmp(s->name,".data"))
-	  {
-	    target_section->output_offset+=s->_raw_size;
-	    target_section->output_section=s;
-	  }
-    }
 }
 
 
@@ -644,7 +648,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
       else
 	{
 	  if (amiga_base_relative)
-	    aout_update_target_section (target_section);
+	    amiga_update_target_section (target_section);
 	  relocation=0;
 	  copy=TRUE;
 	}
@@ -661,15 +665,21 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
     case H_PC32:
       if (bfd_is_abs_section(target_section)) /* Ref to absolute hunk */
 	relocation=sym->value;
+#if 0
       else if (sec->output_section!=target_section->output_section) /* Error */
 	{
 	  DPRINT(5,("pc relative, but out-of-range\n"));
 	  ret=bfd_reloc_outofrange;
 	}
+#endif
       else /* Same section */
 	{
+		if (sec->output_section != target_section->output_section)
+			amiga_update_target_section_pcrel(target_section);
 	  relocation = sym->value + target_section->output_offset
-	    - sec->output_offset;
+	    - sec->output_offset
+		  + r->addend
+		  ;
 	}
       break;
 
@@ -699,7 +709,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
         }
       else /* Target section and sec need not be the same.. */
 	{
-	  aout_update_target_section (target_section);
+	  amiga_update_target_section (target_section);
 
 	  relocation = sym->value + target_section->output_offset
 	    - (AMIGA_DATA(target_section->output_section->owner))->a4init;
