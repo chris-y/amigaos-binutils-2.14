@@ -1411,7 +1411,6 @@ amiga_write_object_contents (abfd)
   int *index_map,max_hunk=-1;
   sec_ptr data_sec,p;
   unsigned long i,n[5];
-  sec_ptr text_sec = 0;
 
   /* Distinguish UNITS, LOAD Files
     Write out hunks+relocs+HUNK_EXT+HUNK_DEBUG (GNU format) */
@@ -1422,27 +1421,6 @@ amiga_write_object_contents (abfd)
   index_map = bfd_alloc (abfd, abfd->section_count * sizeof (int));
   if (!index_map)
     return FALSE;
-
-  for (idx = 0, p = abfd->sections; p != NULL; p = p->next)
-	  if (!strcmp(p->name, ".bss") && !strcmp(p->output_section->name, ".text"))
-		  text_sec = p->output_section;
-
-  if (text_sec)
-	  for (idx = 0, p = abfd->sections; p != NULL; p = p->next)
-		  if (strcmp(p->name, ".text") && p->_raw_size)
-		  {
-			  unsigned ns = text_sec->_raw_size + p->_raw_size;
-			  char * c = (char *)bfd_zalloc(abfd, ns);
-			  memcpy(c, text_sec->contents, text_sec->_raw_size);
-			  if (p->contents)
-				memcpy(c + text_sec->_raw_size, p->contents, p->_raw_size);
-			  text_sec->contents = c;
-			  text_sec->_raw_size = ns;
-			  p->_raw_size = 0;
-			  text_sec->_cooked_size += p->_cooked_size;
-			  p->_cooked_size = 0;
-		  }
-
 
   for (idx=0, p=abfd->sections; p!=NULL; p=p->next)
     index_map[idx++] = p->index;

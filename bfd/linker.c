@@ -1865,8 +1865,8 @@ _bfd_generic_link_add_one_symbol (info, abfd, name, flags, section, value,
 	      /* Ignore a redefinition of an absolute symbol to the
 		 same value; it's harmless.  */
 	      if (h->type == bfd_link_hash_defined
-		  && ((bfd_is_abs_section (msec)
-		  && bfd_is_abs_section (section)) || msec == section)
+		  && bfd_is_abs_section (msec)
+		  && bfd_is_abs_section (section)
 		  && value == mval)
 		break;
 

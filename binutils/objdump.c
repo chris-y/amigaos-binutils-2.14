@@ -76,15 +76,12 @@ static int dump_debugging;		/* --debugging */
 static bfd_vma adjust_section_vma = 0;	/* --adjust-vma */
 static int file_start_context = 0;      /* --file-start-context */
 
-static int flag_re_source = 0; /* -X, --re-source */
-
 /* Extra info to pass to the disassembler address printing function.  */
 struct objdump_disasm_info
 {
   bfd *abfd;
   asection *sec;
   bfd_boolean require_sec;
-  bfd_boolean rts;
 };
 
 /* Architecture to disassemble for, or default if NULL.  */
@@ -167,7 +164,7 @@ static int objdump_symbol_at_address
   PARAMS ((bfd_vma, struct disassemble_info *));
 static void show_line
   PARAMS ((bfd *, asection *, bfd_vma));
-static bfd_vma disassemble_bytes
+static void disassemble_bytes
   PARAMS ((struct disassemble_info *, disassembler_ftype, bfd_boolean,
 	   bfd_byte *, bfd_vma, bfd_vma, arelent ***, arelent **));
 static void disassemble_data
@@ -236,7 +233,6 @@ usage (stream, status)
                                   `lucid', `arm', `hp', `edg', `gnu-v3', `java'\n\
                                   or `gnat'\n\
   -w, --wide                     Format output for more than 80 columns\n\
-  -X, --re-source                Generate asm style output\n\
   -z, --disassemble-zeroes       Do not skip blocks of zeroes when disassembling\n\
       --start-address=ADDR       Only process data whose address is >= ADDR\n\
       --stop-address=ADDR        Only process data whose address is <= ADDR\n\
@@ -287,7 +283,6 @@ static struct option long_options[]=
   {"no-show-raw-insn", no_argument, &show_raw_insn, -1},
   {"prefix-addresses", no_argument, &prefix_addresses, 1},
   {"reloc", no_argument, NULL, 'r'},
-  {"re-source", no_argument, NULL, 'X'},
   {"section", required_argument, NULL, 'j'},
   {"section-headers", no_argument, NULL, 'h'},
   {"show-raw-insn", no_argument, &show_raw_insn, 1},
@@ -821,7 +816,6 @@ objdump_print_addr_with_sym (abfd, sec, sym, vma, info, skip_zeroes)
      struct disassemble_info *info;
      bfd_boolean skip_zeroes;
 {
-	if (!flag_re_source)
   objdump_print_value (vma, info, skip_zeroes);
 
   if (sym == NULL)
@@ -845,7 +839,6 @@ objdump_print_addr_with_sym (abfd, sec, sym, vma, info, skip_zeroes)
     }
   else
     {
-	  if (!flag_re_source)
       (*info->fprintf_func) (info->stream, " <");
       objdump_print_symname (abfd, info, sym);
       if (bfd_asymbol_value (sym) > vma)
@@ -858,8 +851,7 @@ objdump_print_addr_with_sym (abfd, sec, sym, vma, info, skip_zeroes)
 	  (*info->fprintf_func) (info->stream, "+0x");
 	  objdump_print_value (vma - bfd_asymbol_value (sym), info, TRUE);
 	}
-	  if (!flag_re_source)
-		  (*info->fprintf_func) (info->stream, ">");
+      (*info->fprintf_func) (info->stream, ">");
     }
 }
 
@@ -919,65 +911,6 @@ objdump_symbol_at_address (vma, info)
 				 (long *) NULL);
 
   return (sym != NULL && (bfd_asymbol_value (sym) == vma));
-}
-
-
-/* This function is used to print to the bit-bucket. */
-static int
-#ifdef __STDC__
-dummy_printer(FILE *file ATTRIBUTE_UNUSED,
-	const char *format ATTRIBUTE_UNUSED, ...)
-#else
-dummy_printer(file)
-FILE *file ATTRIBUTE_UNUSED;
-#endif
-{
-	return 0;
-}
-/* Add a synthetic symbol to the sorted symbols. 
- * Derived from the current symbol.
- */
-static asymbol * current_symbol;
-static unsigned dummy_symbol_counter;
-bfd_boolean mark_local;
-bfd_boolean mark_skip;
-static void
-objdump_add_synthetic_symbol(bfd_vma vma, struct disassemble_info *info)
-{
-	static char buf[512];
-	asymbol *new_symbol;
-	long place = 0;
-
-	if (mark_skip)
-	{
-		mark_skip = FALSE;
-		return;
-	}
-
-	struct objdump_disasm_info *aux =
-		(struct objdump_disasm_info *) info->application_data;
-
-	new_symbol = find_symbol_for_address(aux->sec->owner, aux->sec, vma,
-		TRUE, &place);
-	if (new_symbol && new_symbol->section == info->section && new_symbol->value == vma)
-		return;
-
-
-	++sorted_symcount;
-	sorted_syms = (asymbol **)xrealloc(sorted_syms, sorted_symcount * sizeof(asymbol *));
-	sorted_syms[sorted_symcount - 1] = new_symbol = (asymbol *)xmalloc(sizeof(asymbol));
-	*new_symbol = *current_symbol;
-	new_symbol->section = aux->sec;
-	new_symbol->value = vma;
-	sprintf(buf, ".%s_%d", current_symbol->name, ++dummy_symbol_counter);
-	new_symbol->name = xstrdup(buf);
-	if (mark_local)
-	{
-		new_symbol->flags |= BSF_LOCAL;
-		mark_local = 0;
-	}
-	/* Sort the symbols into section and symbol order.  */
-	qsort(sorted_syms, sorted_symcount, sizeof(asymbol *), compare_symbols);
 }
 
 /* Hold the last function name and the last line number we displayed
@@ -1252,7 +1185,7 @@ objdump_sprintf VPARAMS ((SFILE *f, const char *format, ...))
 
 /* Disassemble some data in memory between given values.  */
 
-static bfd_vma
+static void
 disassemble_bytes (info, disassemble_fn, insns, data,
 		   start_offset, stop_offset, relppp,
 		   relppend)
@@ -1286,7 +1219,7 @@ disassemble_bytes (info, disassemble_fn, insns, data,
      zeroes in chunks of 4, ensuring that there is always a leading
      zero remaining.  */
   skip_addr_chars = 0;
-  if (! prefix_addresses && !flag_re_source)
+  if (! prefix_addresses)
     {
       char buf[30];
       char *s;
@@ -1354,17 +1287,14 @@ disassemble_bytes (info, disassemble_fn, insns, data,
 
 	  if (! prefix_addresses)
 	    {
-			if (!flag_re_source)
-			{
-				char *s;
+	      char *s;
 
-				bfd_sprintf_vma(aux->abfd, buf, section->vma + addr_offset);
-				for (s = buf + skip_addr_chars; *s == '0'; s++)
-					*s = ' ';
-				if (*s == '\0')
-					*--s = '0';
-				printf("%s:\t", buf + skip_addr_chars);
-			}
+	      bfd_sprintf_vma (aux->abfd, buf, section->vma + addr_offset);
+	      for (s = buf + skip_addr_chars; *s == '0'; s++)
+		*s = ' ';
+	      if (*s == '\0')
+		*--s = '0';
+	      printf ("%s:\t", buf + skip_addr_chars);
 	    }
 	  else
 	    {
@@ -1376,12 +1306,10 @@ disassemble_bytes (info, disassemble_fn, insns, data,
 
 	  if (insns)
 	    {
-		  fprintf_ftype saved_fprintf_func = info->fprintf_func;
 	      sfile.size = 120;
 	      sfile.buffer = xmalloc (sfile.size);
 	      sfile.current = sfile.buffer;
-		  
-		  info->fprintf_func = (fprintf_ftype) objdump_sprintf;
+	      info->fprintf_func = (fprintf_ftype) objdump_sprintf;
 	      info->stream = (FILE *) &sfile;
 	      info->bytes_per_line = 0;
 	      info->bytes_per_chunk = 0;
@@ -1418,10 +1346,8 @@ disassemble_bytes (info, disassemble_fn, insns, data,
 	      info->flags = 0;
 
 	      octets = (*disassemble_fn) (section->vma + addr_offset, info);
-
-		  info->fprintf_func = saved_fprintf_func;
+	      info->fprintf_func = (fprintf_ftype) fprintf;
 	      info->stream = stdout;
-
 	      if (info->bytes_per_line != 0)
 		octets_per_line = info->bytes_per_line;
 	      if (octets < 0)
@@ -1467,38 +1393,33 @@ disassemble_bytes (info, disassemble_fn, insns, data,
 	      else
 		bpc = 1;
 
-		  if (!flag_re_source)
-		  {
-			  for (j = addr_offset * opb; j < addr_offset * opb + pb; j += bpc)
-			  {
-				  int k;
-				  if (bpc > 1 && info->display_endian == BFD_ENDIAN_LITTLE)
-				  {
-					  for (k = bpc - 1; k >= 0; k--)
-						  printf("%02x", (unsigned)data[j + k]);
-					  putchar(' ');
-				  }
-				  else
-				  {
-					  for (k = 0; k < bpc; k++)
-						  printf("%02x", (unsigned)data[j + k]);
-					  putchar(' ');
-				  }
-			  }
+	      for (j = addr_offset * opb; j < addr_offset * opb + pb; j += bpc)
+		{
+		  int k;
+		  if (bpc > 1 && info->display_endian == BFD_ENDIAN_LITTLE)
+		    {
+		      for (k = bpc - 1; k >= 0; k--)
+			printf ("%02x", (unsigned) data[j + k]);
+		      putchar (' ');
+		    }
+		  else
+		    {
+		      for (k = 0; k < bpc; k++)
+			printf ("%02x", (unsigned) data[j + k]);
+		      putchar (' ');
+		    }
+		}
 
-			  for (; pb < octets_per_line; pb += bpc)
-			  {
-				  int k;
+	      for (; pb < octets_per_line; pb += bpc)
+		{
+		  int k;
 
-				  for (k = 0; k < bpc; k++)
-					  printf("  ");
-				  putchar(' ');
-			  }
-		  }
+		  for (k = 0; k < bpc; k++)
+		    printf ("  ");
+		  putchar (' ');
+		}
+
 	      /* Separate raw data from instruction by extra space.  */
-		  if (insns < 0)
-		  {
-		  } else
 	      if (insns)
 		putchar ('\t');
 	      else
@@ -1508,15 +1429,14 @@ disassemble_bytes (info, disassemble_fn, insns, data,
 	  if (! insns)
 	    printf ("%s", buf);
 	  else
-	  if (insns > 0)
 	    {
 	      printf ("%s", sfile.buffer);
 	      free (sfile.buffer);
 	    }
 
-	  if (!flag_re_source && (prefix_addresses
+	  if (prefix_addresses
 	      ? show_raw_insn > 0
-	      : show_raw_insn >= 0))
+	      : show_raw_insn >= 0)
 	    {
 	      while (pb < octets)
 		{
@@ -1557,19 +1477,15 @@ disassemble_bytes (info, disassemble_fn, insns, data,
 	    }
 
 	  if (!wide_output)
-	  {
-		  if (insns >= 0)
-			putchar('\n');
-	  }
+	    putchar ('\n');
 	  else
 	    need_nl = TRUE;
 	}
 
       if ((section->flags & SEC_RELOC) != 0
 #ifndef DISASSEMBLER_NEEDS_RELOCS
-	  && dump_reloc_info 
+	  && dump_reloc_info
 #endif
-      && !flag_re_source
 	  )
 	{
 	  while ((*relppp) < relppend
@@ -1631,15 +1547,7 @@ disassemble_bytes (info, disassemble_fn, insns, data,
 	printf ("\n");
 
       addr_offset += octets / opb;
-
-	  if (((struct objdump_disasm_info *) info->application_data)->rts)
-	  {
-		  ((struct objdump_disasm_info *) info->application_data)->rts = FALSE;
-		  break;
-	  }
     }
-
-	return addr_offset;
 }
 
 /* Disassemble the contents of an object file.  */
@@ -1674,7 +1582,6 @@ disassemble_data (abfd)
   disasm_info.application_data = (PTR) &aux;
   aux.abfd = abfd;
   aux.require_sec = FALSE;
-  aux.rts = FALSE;
   disasm_info.print_address_func = objdump_print_address;
   disasm_info.symbol_at_address_func = objdump_symbol_at_address;
 
@@ -1780,10 +1687,8 @@ disassemble_data (abfd)
 		  ++relpp;
 	    }
 	}
-	  if (flag_re_source)
-		printf(_("\tsection %s:\n"), section->name);
-	  else
-		printf (_("Disassembly of section %s:\n"), section->name);
+
+      printf (_("Disassembly of section %s:\n"), section->name);
 
       datasize = bfd_get_section_size_before_reloc (section);
       if (datasize == 0)
@@ -1816,40 +1721,6 @@ disassemble_data (abfd)
 	  if (stop_offset > disasm_info.buffer_length / opb)
 	    stop_offset = disasm_info.buffer_length / opb;
 	}
-
-	if (flag_re_source && (section->flags & BSF_KEEP))
-	  {
-		  arelent **myrelpp = relpp;
-		  disasm_info.fprintf_func = (fprintf_ftype)dummy_printer;
-		  disasm_info.print_address_func = &objdump_add_synthetic_symbol;
-
-		  for (unsigned long pos = addr_offset, end = addr_offset; pos < stop_offset;)
-		  {
-				current_symbol = find_symbol_for_address(abfd, section, section->vma + pos,
-				  TRUE, &place);
-
-			  while (place < sorted_symcount) {
-				  asymbol * s = sorted_syms[place];
-				  if (s->section == section && s->value > pos && s->name[0] != '.')
-				  {
-					  end = s->value;
-					  break;
-				  }
-				  ++place;
-			  }
-			  if (place == sorted_symcount)
-				  pos = stop_offset;
-
-			  dummy_symbol_counter = 0;
-			  disassemble_bytes(&disasm_info, disassemble_fn, -1, data,
-				  pos, end, &myrelpp, relppend);
-
-			  pos = end;
-		  }
-		  disasm_info.print_address_func = objdump_print_address;
-		  disasm_info.fprintf_func = (fprintf_ftype)fprintf;
-	}
-
 
       sym = find_symbol_for_address (abfd, section, section->vma + addr_offset,
 				     TRUE, &place);
@@ -1926,29 +1797,20 @@ disassemble_data (abfd)
 	     rather than a function, just dump the bytes without
 	     disassembling them.  */
 	  if (disassemble_all
-		  || sym == NULL
-		  || bfd_asymbol_value(sym) > section->vma + addr_offset
-		  || ((sym->flags & BSF_OBJECT) == 0
-			  && (strstr(bfd_asymbol_name(sym), "gnu_compiled")
-				  == NULL)
-			  && (strstr(bfd_asymbol_name(sym), "gcc2_compiled")
-				  == NULL))
-		  || (sym->flags & BSF_FUNCTION) != 0)
-#ifdef TARGET_AMIGA
-  	    insns = (section->flags & BSF_KEEP) != 0 && (sym->flags & BSF_LOCAL) == 0;
-#else
+	      || sym == NULL
+	      || bfd_asymbol_value (sym) > section->vma + addr_offset
+	      || ((sym->flags & BSF_OBJECT) == 0
+		  && (strstr (bfd_asymbol_name (sym), "gnu_compiled")
+		      == NULL)
+		  && (strstr (bfd_asymbol_name (sym), "gcc2_compiled")
+		      == NULL))
+	      || (sym->flags & BSF_FUNCTION) != 0)
 	    insns = TRUE;
-#endif
 	  else
 	    insns = FALSE;
 
-	  addr_offset = disassemble_bytes (&disasm_info, disassemble_fn, insns, data,
+	  disassemble_bytes (&disasm_info, disassemble_fn, insns, data,
 			     addr_offset, nextstop_offset, &relpp, relppend);
-
-	  if (addr_offset < nextstop_offset)
-		  disassemble_bytes(&disasm_info, disassemble_fn, 0, data,
-			  addr_offset, nextstop_offset, &relpp, relppend);
-
 
 	  addr_offset = nextstop_offset;
 	  sym = nextsym;
@@ -2785,7 +2647,7 @@ main (argc, argv)
   bfd_init ();
   set_default_bfd_target ();
 
-  while ((c = getopt_long (argc, argv, "pib:m:M:VvCdDlfaHhrRtTxsSj:wE:zgGX",
+  while ((c = getopt_long (argc, argv, "pib:m:M:VvCdDlfaHhrRtTxsSj:wE:zgG",
 			   long_options, (int *) 0))
 	 != EOF)
     {
@@ -2793,9 +2655,6 @@ main (argc, argv)
 	{
 	case 0:
 	  break;		/* We've been given a long option.  */
-	case 'X':
-		flag_re_source = 1;
-		break;
 	case 'm':
 	  machine = optarg;
 	  break;

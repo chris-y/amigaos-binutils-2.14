@@ -31,11 +31,7 @@ struct objdump_disasm_info
   bfd *abfd;
   asection *sec;
   bfd_boolean require_sec;
-  bfd_boolean rts;
 };
-
-extern bfd_boolean mark_local;
-extern bfd_boolean mark_skip;
 
 /* Support display of symbols in baserel offsets. */
 static void
@@ -465,8 +461,6 @@ print_insn_m68k (memaddr, info)
 
   d = best->args;
 
-  ((struct objdump_disasm_info *) info->application_data)->rts = 0 == strncmp("rts", best->name, 3);
-
   (*info->fprintf_func) (info->stream, "%s", best->name);
 
   if (*d)
@@ -704,7 +698,7 @@ print_insn_arg (d, buffer, p0, addr, info)
 	val = NEXTLONG (p1);
       else
 	return -2;
-	  (*info->fprintf_func) (info->stream, "#%d", val);
+      (*info->fprintf_func) (info->stream, "#%d", val);
       break;
 
     case 'B':
@@ -842,7 +836,6 @@ print_insn_arg (d, buffer, p0, addr, info)
 			  (struct objdump_disasm_info *) info->application_data;
 		      asection * text = aux->sec;
 		      aux->sec = bfd_get_section (*info->relp->sym_ptr_ptr);
-			  mark_local = TRUE;
 		      (*info->print_address_func) (uval, info);
 
 		      /* restore section to .text */
@@ -858,7 +851,6 @@ print_insn_arg (d, buffer, p0, addr, info)
 	    case 2:
 	      val = NEXTWORD (p);
 	      (*info->fprintf_func) (info->stream, "%%pc@(");
-		  mark_local = TRUE;
 	      (*info->print_address_func) (addr + val, info);
 	      (*info->fprintf_func) (info->stream, ")");
 	      break;
@@ -907,27 +899,8 @@ print_insn_arg (d, buffer, p0, addr, info)
 	      }
 	      if (flt_p)	/* Print a float? */
 		(*info->fprintf_func) (info->stream, "#%g", flval);
-		  else
-		  {
-			  if (info->relp &&
-				  info->relp->address <= addr + (p - p0)
-				  && info->relp->sym_ptr_ptr && *info->relp->sym_ptr_ptr)
-			  {
-				  /* Swap section with the correct one. */
-				  struct objdump_disasm_info *aux =
-					  (struct objdump_disasm_info *) info->application_data;
-				  asection * text = aux->sec;
-				  aux->sec = bfd_get_section(*info->relp->sym_ptr_ptr);
-				  (*info->fprintf_func) (info->stream, "#");
-				  mark_local = 1;
-				  (*info->print_address_func) (val, info);
-
-				  /* restore section to .text */
-				  aux->sec = text;
-			  }
-			  else
-			  (*info->fprintf_func) (info->stream, "#%d", val);
-		  }
+	      else
+		(*info->fprintf_func) (info->stream, "#%d", val);
 	      break;
 
 	    default:
@@ -1379,7 +1352,6 @@ print_base (regno, disp, info)
   if (regno == -1)
     {
       (*info->fprintf_func) (info->stream, "%%pc@(");
-	  mark_local = TRUE;
       (*info->print_address_func) (disp, info);
     }
   else
@@ -1409,8 +1381,6 @@ print_base (regno, disp, info)
 	   */
 	  if (disp & 0x80000000)
 	    offset = 0x7ffe;
-
-	  mark_skip = TRUE;
 	  (*info->print_address_func) (disp + offset, info);
 
 	  /* restore section to .text */
