@@ -7326,8 +7326,8 @@ md_pcrel_from (fixP)
   adjust = ((fixP->fx_pcrel_adjust & 0xff) ^ 0x80) - 0x80;
   if (adjust == 64)
     adjust = -1;
-  if (OBJ_AMIGAHUNK)
-    return -adjust;
+//  if (OBJ_AMIGAHUNK)
+//    return -adjust;
   return fixP->fx_where + fixP->fx_frag->fr_address - adjust;
 }
 

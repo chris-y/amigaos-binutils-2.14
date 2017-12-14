@@ -3235,6 +3235,10 @@ pseudo_set (symbolP)
 
   (void) expression (&exp);
 
+#if defined(OBJ_AMIGAHUNK)
+  exp.X_op = O_constant;
+#endif
+
   if (exp.X_op == O_illegal)
     as_bad (_("illegal expression"));
   else if (exp.X_op == O_absent)

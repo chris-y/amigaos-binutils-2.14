@@ -147,6 +147,9 @@ struct amiga_data {
   file_ptr sym_filepos;
   file_ptr str_filepos;
   /* rest intentionally omitted */
+
+  carsym *symdefs;		/* the symdef entries */
+  symindex symdef_count;	/* how many there are */
 };
 
 typedef struct amiga_data_struct {

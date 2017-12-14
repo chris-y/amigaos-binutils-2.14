@@ -3942,8 +3942,10 @@ echo "$as_me: WARNING: GAS support for ${generic_target} is preliminary and a wo
       m68hc11-*-* | m6811-*-*)		fmt=elf ;;
       m68hc12-*-* | m6812-*-*)		fmt=elf ;;
 
-      m68*-*-amigaoshunk)   		fmt=amigahunk em=amiga bfd_gas=yes ;;
-      m68*-*-amigaos*)      		fmt=aout em=amiga ;;
+      m68*-*-amigaosaout)      	fmt=aout em=amiga ;;
+#      m68*-*-amigaos*)   		fmt=aout em=amiga ;;
+      m68*-*-amigaos*)   		fmt=amigahunk em=amiga bfd_gas=yes ;;
+      m68*-*-amigaoshunk)   	fmt=amigahunk em=amiga bfd_gas=yes ;;
       m68k-*-vxworks*)			fmt=aout em=sun3 ;;
       m68k-ericsson-ose)		fmt=aout em=sun3 ;;
       m68k-*-sunos*)			fmt=aout em=sun3 ;;

@@ -45,6 +45,15 @@ extern void obj_amiga_frob_file_before_fix PARAMS ((void));
 
 #define obj_sec_sym_ok_for_reloc(SEC)	(1)
 
+/* Put the Stabs into an own section.  */
+#define SEPARATE_STAB_SECTIONS 1
+
+///* We need 12 bytes at the start of the section to hold some initial
+//   information.  */
+//extern void obj_amiga_init_stab_section PARAMS ((segT));
+//#define INIT_STAB_SECTION(seg) obj_amiga_init_stab_section (seg)
+
+
 #endif /* BFD_ASSEMBLER */
 
 #define obj_read_begin_hook()		{;}

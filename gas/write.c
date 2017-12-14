@@ -702,6 +702,12 @@ size_seg (abfd, sec, xxx)
   if (size > 0 && ! seginfo->bss)
     flags |= SEC_HAS_CONTENTS;
 
+#ifdef OBJ_AMIGAHUNK
+  if (size == 0 && 0 == strcmp( sec->name, ".text"))
+      flags |= SEC_HAS_CONTENTS | SEC_CODE;
+//  fprintf(stderr, "%s: %d\n", sec->name, size);
+#endif
+
   /* @@ This is just an approximation.  */
   if (seginfo && seginfo->fix_root)
     flags |= SEC_RELOC;
@@ -1143,10 +1149,16 @@ write_contents (abfd, sec, xxx)
   unsigned long offset = 0;
   fragS *f;
 
+
   /* Write out the frags.  */
   if (seginfo == NULL
       || !(bfd_get_section_flags (abfd, sec) & SEC_HAS_CONTENTS))
     return;
+
+
+#ifdef OBJ_AMIGAHUNK
+//  fprintf(stderr, "%s: %x  %p\n", sec->name, (bfd_get_section_flags (abfd, sec)), seginfo->frchainP->frch_root);
+#endif
 
   for (f = seginfo->frchainP->frch_root;
        f;
@@ -1157,8 +1169,12 @@ write_contents (abfd, sec, xxx)
       char *fill_literal;
       long count;
 
+//      fprintf(stderr, "fragment %p: %d %d %d\n", f, f->fr_var, f->fr_offset, f->fr_fix);
+
       assert (f->fr_type == rs_fill);
-      if (f->fr_fix)
+      if (f->fr_fix
+	  || f->fr_var
+      )
 	{
 	  x = bfd_set_section_contents (stdoutput, sec,
 					f->fr_literal, (file_ptr) offset,

@@ -230,9 +230,9 @@ static void obj_amiga_section(int push) {
 		return;
 
 	if (0 == strcmp(".rodata", name))
-		s_text();
+		s_text(push);
 	else
-		s_data();
+		s_data(push);
 }
 
 static void
@@ -275,3 +275,28 @@ obj_amiga_weak (ignore)
   while (c == ',');
   demand_empty_rest_of_line ();
 }
+
+
+///* The first entry in a .stab section is special.  */
+//
+//void
+//obj_amiga_init_stab_section (seg)
+//     segT seg;
+//{
+//  char *file;
+//  char *p;
+//  char *stabstr_name;
+//  unsigned int stroff;
+//
+//  /* Make space for this first symbol.  */
+//  p = frag_more (12);
+//  /* Zero it out.  */
+//  memset (p, 0, 12);
+//  as_where (&file, (unsigned int *) NULL);
+//  stabstr_name = (char *) alloca (strlen (segment_info[seg].name) + 4);
+//  strcpy (stabstr_name, segment_info[seg].name);
+//  strcat (stabstr_name, "str");
+//  stroff = get_stab_string_offset (file, stabstr_name);
+//  know (stroff == 1);
+//  md_number_to_chars (p, stroff, 4);
+//}

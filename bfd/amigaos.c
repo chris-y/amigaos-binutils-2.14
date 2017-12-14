@@ -231,7 +231,7 @@ static bfd *amiga_openr_next_archived_file PARAMS ((bfd *, bfd *));
 static PTR amiga_read_ar_hdr PARAMS ((bfd *));
 static int amiga_generic_stat_arch_elt PARAMS ((bfd *, struct stat *));
 
-/*#define DEBUG_AMIGA 1*/
+//#define DEBUG_AMIGA 1
 #if DEBUG_AMIGA
 #include <stdarg.h>
 static void
@@ -815,6 +815,7 @@ amiga_read_unit (abfd, size)
 	  return (bfd_seek (abfd, -4, SEEK_CUR) == 0);
 
 	case HUNK_DEBUG:
+/* SBF: TODO */
 	  /* we don't parse hunk_debug at the moment */
 	  if (!get_long (abfd, &tmp) || bfd_seek (abfd, tmp<<2, SEEK_CUR))
 	    return FALSE;
@@ -1066,6 +1067,14 @@ amiga_handle_cdb_hunk (abfd, hunk_type, hunk_number, hunk_attribute,
 	 the debug hunk is at the same level as code/data/bss.
 	 This will change in the future */
     case HUNK_DEBUG:
+      /* handle .stab and .stabs as real sections. */
+      if (current_name &&
+	  (0 == strcmp(current_name, ".stab") || 0 == strcmp(current_name, ".stabstr")))
+	{
+	  secflags = SEC_HAS_CONTENTS;
+	  goto do_section;
+	}
+
       /* format of gnu debug hunk is:
 	  HUNK_DEBUG
 	      N
@@ -1441,7 +1450,11 @@ amiga_write_object_contents (abfd)
 	   may get some contents later on */
 	if ((amiga_base_relative || p->_raw_size!=0 || p->_cooked_size!=0) &&
 	    !(amiga_base_relative && !strcmp (p->name, ".bss")))
-	  n[2]++;
+	  {
+	    /* don't count debug sections. */
+	    if (strcmp(p->name, ".stab") && strcmp(p->name, ".stabstr"))
+	      n[2]++;
+	  }
 	else
 	  remove_section_index (p, index_map);
       }
@@ -1473,6 +1486,10 @@ amiga_write_object_contents (abfd)
 	  long extra = 0, i;
 
 	  if (index_map[p->index] < 0)
+	    continue;
+
+	  /* don't add debug sections. */
+	  if (!strcmp(p->name, ".stab") || !strcmp(p->name, ".stabstr"))
 	    continue;
 
 	  if (datadata_relocs && !strcmp(p->name,".text"))
@@ -1532,7 +1549,7 @@ amiga_write_object_contents (abfd)
       }
 
       for (p=abfd->sections; p!=NULL; p=p->next) {
-	if (p->_raw_size==0 && p->_cooked_size==0)
+	if (p->_raw_size==0 && p->_cooked_size==0 && strcmp(".text", p->name))
 	  remove_section_index (p, index_map);
       }
     }
@@ -3122,7 +3139,10 @@ amiga_archive_p (abfd)
       amiga_ardata(abfd)->defsyms = symbols;
       amiga_ardata(abfd)->defsym_count = symcount;
       if (amiga_slurp_armap (abfd))
-	return abfd->xvec;
+	{
+	  bfd_set_error(bfd_error_no_more_archived_files);
+	  return abfd->xvec;
+        }
     }
 
   return NULL;
