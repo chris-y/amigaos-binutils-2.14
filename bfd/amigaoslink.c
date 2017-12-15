@@ -707,7 +707,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
       else /* Target section and sec need not be the same.. */
 	{
 	  aout_update_target_section (target_section);
-printf("val: %08x offset: %08x sz %08x ", sym->value, target_section->output_offset, target_section->output_section->_raw_size);
+//printf("val: %08x offset: %08x sz %08x ", sym->value, target_section->output_offset, target_section->output_section->_raw_size);
 	  relocation = sym->value + target_section->output_offset
 	    - (AMIGA_DATA(target_section->output_section->owner))->a4init;
 	  /* if the symbol is in .bss, subtract the offset that gas has put
@@ -720,7 +720,7 @@ printf("val: %08x offset: %08x sz %08x ", sym->value, target_section->output_off
 		     target_section->owner->filename, target_section->output_offset,
 		     r->address));
 	  flags|=ADDEND_UNSIGNED;
-printf("reloc %08x %5s %s\n", relocation + (AMIGA_DATA(target_section->output_section->owner))->a4init, target_section->name, sym->name);
+//printf("reloc %08x %5s %s\n", relocation + (AMIGA_DATA(target_section->output_section->owner))->a4init, target_section->name, sym->name);
 	}
       DPRINT(10,("target->out=%s(%lx), sec->out=%s(%lx), symbol=%s\n",
 		 target_section->output_section->name,
