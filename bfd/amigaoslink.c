@@ -367,7 +367,7 @@ amiga_update_target_section (target_section)
       for (s=ibfd->sections;s!=NULL;s=s->next)
 	if (!strcmp(s->name,".data"))
 	  {
-	    target_section->output_offset=s->_raw_size;
+	    target_section->output_offset+=s->_raw_size;
 	    target_section->output_section=s;
 	  }
     }
@@ -468,7 +468,7 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	{
 	  DPRINT(5,("PC relative\n"));
 	  relocation = sym->value + target_section->output_offset
-	    - (r->address + sec->output_offset);
+	    - sec->output_offset;
 	}
       break;
 
@@ -496,10 +496,15 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
       else
 	{
 	  amiga_update_target_section (target_section);
+	  relocation = sym->value + target_section->output_offset + r->addend;
+	  
+	  DPRINT(20,("symbol=%s (0x%lx)\nsection %s (0x%lx; %s; output=0x%lx)"
+		     "\nrelocation @0x%lx\n", sym->name, sym->value,
+		     target_section->name, target_section,
+		     target_section->owner->filename, target_section->output_offset,
+		     r->address));
 
-	  relocation = sym->value + target_section->output_offset
-	    - (AMIGA_DATA(target_section->output_section->owner))->a4init
-	    + r->addend;
+	  relocation -= (AMIGA_DATA(target_section->output_section->owner))->a4init;
 	  flags|=ADDEND_UNSIGNED;
 	}
       break;
@@ -707,9 +712,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
       else /* Target section and sec need not be the same.. */
 	{
 	  aout_update_target_section (target_section);
-//printf("val: %08x offset: %08x sz %08x ", sym->value, target_section->output_offset, target_section->output_section->_raw_size);
-	  relocation = sym->value + target_section->output_offset
-	    - (AMIGA_DATA(target_section->output_section->owner))->a4init;
+	  relocation = sym->value + target_section->output_offset;
 	  /* if the symbol is in .bss, subtract the offset that gas has put
 	     into the opcode */
 	  if (target_section->index == 2 && !(sym->flags & BSF_GLOBAL))
@@ -719,8 +722,9 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 		     target_section->name, target_section,
 		     target_section->owner->filename, target_section->output_offset,
 		     r->address));
+
+	  relocation -= (AMIGA_DATA(target_section->output_section->owner))->a4init;
 	  flags|=ADDEND_UNSIGNED;
-//printf("reloc %08x %5s %s\n", relocation + (AMIGA_DATA(target_section->output_section->owner))->a4init, target_section->name, sym->name);
 	}
       DPRINT(10,("target->out=%s(%lx), sec->out=%s(%lx), symbol=%s\n",
 		 target_section->output_section->name,

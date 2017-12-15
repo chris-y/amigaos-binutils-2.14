@@ -133,8 +133,7 @@ extern PTR alloca PARAMS ((size_t));
 #define bfd_is_special_section(sec) \
   (bfd_is_abs_section(sec)||bfd_is_com_section(sec)||bfd_is_und_section(sec)||bfd_is_ind_section(sec))
 
-struct arch_syms
-{
+struct arch_syms {
   unsigned long offset; /* disk offset in the archive */
   unsigned long size; /* size of the block of symbols */
   unsigned long unit_offset; /* start of unit on disk */
@@ -142,8 +141,7 @@ struct arch_syms
   struct arch_syms *next; /* linked list */
 };
 
-typedef struct amiga_ardata_struct
-{
+typedef struct amiga_ardata_struct {
   /* generic stuff */
   struct artdata generic;
   /* amiga-specific stuff */
@@ -250,48 +248,51 @@ error_print (const char *fmt, ...)
 #define DPRINT(L,x)
 #endif
 
-enum
-{
-  R_ABS32 = 0, R_ABS16, R_ABS8, R_PC32, R_PC16, R_PC8, R_SD32, R_SD16, R_SD8, R_PC26, R__MAX
-};
+enum {R_ABS32=0,R_ABS16,R_ABS8,R_PC32,R_PC16,R_PC8,R_SD32,R_SD16,R_SD8,R_PC26,R__MAX};
 static reloc_howto_type howto_table[R__MAX] =
-  {
-    { H_ABS32, /* type */
-    0, /* rightshift */
-    2, /* size */
-    32, /* bitsize */
-    FALSE, /* pc_relative */
-    0, /* bitpos */
-    complain_overflow_bitfield,/* complain_on_overflow */
-    0, /* special_function */
-    "RELOC32", /* textual name */
-    FALSE, /* partial_inplace */
-    0xffffffff, /* src_mask */
-    0xffffffff, /* dst_mask */
-    FALSE }, /* pcrel_offset */
-    { H_ABS16, 0, 1, 16, FALSE, 0, complain_overflow_bitfield, 0, "RELOC16", FALSE, 0x0000ffff, 0x0000ffff, FALSE },
-    { H_ABS8, 0, 0, 8, FALSE, 0, complain_overflow_bitfield, 0, "RELOC8", FALSE, 0x000000ff, 0x000000ff, FALSE },
-    { H_PC32, 0, 2, 32, TRUE, 0, complain_overflow_signed, 0, "RELRELOC32", FALSE, 0xffffffff, 0xffffffff, TRUE },
-    { H_PC16, 0, 1, 16, TRUE, 0, complain_overflow_signed, 0, "RELRELOC16", FALSE, 0x0000ffff, 0x0000ffff, TRUE },
-    { H_PC8, 0, 0, 8, TRUE, 0, complain_overflow_signed, 0, "RELRELOC8", FALSE, 0x000000ff, 0x000000ff, TRUE },
-    { H_SD32, 0, 2, 32, FALSE, 0, complain_overflow_bitfield, 0, "DREL32", FALSE, 0xffffffff, 0xffffffff, FALSE },
-    { H_SD16, 0, 1, 16, FALSE, 0, complain_overflow_bitfield, 0, "DREL16", FALSE, 0x0000ffff, 0x0000ffff, FALSE },
-    { H_SD8, 0, 0, 8, FALSE, 0, complain_overflow_bitfield, 0, "DREL8", FALSE, 0x000000ff, 0x000000ff, FALSE },
-    { H_PC26, 0, 2, 26, TRUE, 0, complain_overflow_signed, 0, "RELRELOC26", FALSE, 0x03fffffc, 0x03fffffc, TRUE }, };
+{
+  {H_ABS32,   /* type */
+  0,          /* rightshift */
+  2,          /* size */
+  32,         /* bitsize */
+  FALSE,      /* pc_relative */
+  0,          /* bitpos */
+  complain_overflow_bitfield,/* complain_on_overflow */
+  0,          /* special_function */
+  "RELOC32",  /* textual name */
+  FALSE,      /* partial_inplace */
+  0xffffffff, /* src_mask */
+  0xffffffff, /* dst_mask */
+  FALSE},     /* pcrel_offset */
+  {H_ABS16,      0, 1, 16, FALSE, 0, complain_overflow_bitfield, 0, "RELOC16",      FALSE, 0x0000ffff, 0x0000ffff, FALSE},
+  {H_ABS8,       0, 0,  8, FALSE, 0, complain_overflow_bitfield, 0, "RELOC8",       FALSE, 0x000000ff, 0x000000ff, FALSE},
+  {H_PC32,       0, 2, 32, TRUE,  0, complain_overflow_signed,   0, "RELRELOC32",   FALSE, 0xffffffff, 0xffffffff, TRUE},
+  {H_PC16,       0, 1, 16, TRUE,  0, complain_overflow_signed,   0, "RELRELOC16",   FALSE, 0x0000ffff, 0x0000ffff, TRUE},
+  {H_PC8,        0, 0,  8, TRUE,  0, complain_overflow_signed,   0, "RELRELOC8",    FALSE, 0x000000ff, 0x000000ff, TRUE},
+  {H_SD32,       0, 2, 32, FALSE, 0, complain_overflow_bitfield, 0, "DREL32",       FALSE, 0xffffffff, 0xffffffff, FALSE},
+  {H_SD16,       0, 1, 16, FALSE, 0, complain_overflow_bitfield, 0, "DREL16",       FALSE, 0x0000ffff, 0x0000ffff, FALSE},
+  {H_SD8,        0, 0,  8, FALSE, 0, complain_overflow_bitfield, 0, "DREL8",        FALSE, 0x000000ff, 0x000000ff, FALSE},
+  {H_PC26,       0, 2, 26, TRUE,  0, complain_overflow_signed,   0, "RELRELOC26",   FALSE, 0x03fffffc, 0x03fffffc, TRUE},
+};
 
 /* Determine the on-disk relocation size.
  AmigaOS upto 3.9 goofed parsing HUNK_RELRELOC32 within an executable
  and reads the hunk data as 16bit words.  */
-static bfd_boolean amiga_reloc_long_p (type, isload)
-  unsigned long type;bfd_boolean isload;
+static bfd_boolean
+amiga_reloc_long_p (type, isload)
+     unsigned long type;
+     bfd_boolean isload;
 {
-  if (type == HUNK_RELOC32SHORT || (isload && (type == HUNK_DREL32 || type == HUNK_RELRELOC32)))
+  if (type == HUNK_RELOC32SHORT
+      || (isload && (type == HUNK_DREL32 || type == HUNK_RELRELOC32)))
     return FALSE;
   return TRUE;
 }
 
-static reloc_howto_type * howto_for_raw_reloc (type, isload)
-  unsigned long type;bfd_boolean isload;
+static reloc_howto_type *
+howto_for_raw_reloc (type, isload)
+     unsigned long type;
+     bfd_boolean isload;
 {
   switch (type)
     {
@@ -319,7 +320,8 @@ static reloc_howto_type * howto_for_raw_reloc (type, isload)
     }
 }
 
-static reloc_howto_type * howto_for_reloc (type)
+static reloc_howto_type *
+howto_for_reloc (type)
   unsigned long type;
 {
   switch (type)
@@ -374,8 +376,10 @@ extern int amiga_base_relative;
 /* used with -resident linking */
 extern int amiga_resident;
 
-static bfd_boolean get_long (abfd, n)
-  bfd *abfd;unsigned long *n;
+static bfd_boolean
+get_long (abfd, n)
+     bfd *abfd;
+     unsigned long *n;
 {
   if (bfd_bread ((PTR) n, 4, abfd) != 4)
     return FALSE;
@@ -383,8 +387,10 @@ static bfd_boolean get_long (abfd, n)
   return TRUE;
 }
 
-static bfd_boolean get_word (abfd, n)
-  bfd *abfd;unsigned long *n;
+static bfd_boolean
+get_word (abfd, n)
+     bfd *abfd;
+     unsigned long *n;
 {
   if (bfd_bread ((PTR) n, 2, abfd) != 2)
     return FALSE;
@@ -392,7 +398,8 @@ static bfd_boolean get_word (abfd, n)
   return TRUE;
 }
 
-static const struct bfd_target * amiga_object_p (abfd)
+static const struct bfd_target *
+amiga_object_p (abfd)
   bfd *abfd;
 {
   unsigned long x;
@@ -459,8 +466,14 @@ static sec_ptr amiga_get_section_by_hunk_number (abfd, hunk_number)
   return NULL;
 }
 
-static bfd_boolean amiga_add_reloc (abfd, section, offset, symbol, howto, target_hunk)
-  bfd *abfd;sec_ptr section;bfd_size_type offset;amiga_symbol_type *symbol;reloc_howto_type *howto;long target_hunk;
+static bfd_boolean
+amiga_add_reloc (abfd, section, offset, symbol, howto, target_hunk)
+     bfd *abfd;
+     sec_ptr section;
+     bfd_size_type offset;
+     amiga_symbol_type *symbol;
+     reloc_howto_type *howto;
+     long target_hunk;
 {
   amiga_reloc_type *reloc;
   sec_ptr target_sec;
@@ -500,8 +513,10 @@ static bfd_boolean amiga_add_reloc (abfd, section, offset, symbol, howto, target
 
 /* BFD doesn't currently allow multiple sections with the same
  name, so we try a little harder to get a unique name.  */
-static sec_ptr amiga_make_unique_section (abfd, name)
-  bfd *abfd;const char *name;
+static sec_ptr
+amiga_make_unique_section (abfd, name)
+     bfd *abfd;
+     const char *name;
 {
   sec_ptr section;
 
@@ -560,9 +575,14 @@ static sec_ptr amiga_make_unique_section (abfd, name)
 #define DPRINTHUNKEND
 #endif
 
-static bfd_boolean parse_archive_units (abfd, n_units, filesize, one, syms, symcount)
-  bfd *abfd;int *n_units;unsigned long filesize;bfd_boolean one; /* parse only the first unit? */
-  struct arch_syms **syms;symindex *symcount;
+static bfd_boolean
+parse_archive_units (abfd, n_units, filesize, one, syms, symcount)
+     bfd *abfd;
+     int *n_units;
+     unsigned long filesize;
+     bfd_boolean one;			/* parse only the first unit? */
+     struct arch_syms **syms;
+     symindex *symcount;
 {
   struct arch_syms *nsyms, *syms_tail = NULL;
   unsigned long unit_offset, defsym_pos = 0;
@@ -894,8 +914,10 @@ static bfd_boolean amiga_digest_file (abfd)
 
 /* Read in Unit file */
 /* file pointer is located after the HUNK_UNIT LW */
-static bfd_boolean amiga_read_unit (abfd, size)
-  bfd *abfd;unsigned long size;
+static bfd_boolean
+amiga_read_unit (abfd, size)
+     bfd *abfd;
+     unsigned long size;
 {
   unsigned long hunk_number = 0, hunk_type, tmp;
 
@@ -920,7 +942,6 @@ static bfd_boolean amiga_read_unit (abfd, size)
 	  return (bfd_seek (abfd, -4, SEEK_CUR) == 0);
 
 	case HUNK_DEBUG:
-	  /* SBF: TODO */
 	  /* we don't parse hunk_debug at the moment */
 	  if (!get_long (abfd, &tmp) || bfd_seek (abfd, tmp << 2, SEEK_CUR))
 	    return FALSE;
@@ -950,7 +971,8 @@ static bfd_boolean amiga_read_unit (abfd, size)
 }
 
 /* Read a load file */
-static bfd_boolean amiga_read_load (abfd)
+static bfd_boolean
+amiga_read_load (abfd)
   bfd *abfd;
 {
   unsigned long *hunk_attributes, *hunk_sizes;
@@ -1038,7 +1060,8 @@ static bfd_boolean amiga_read_load (abfd)
 	case HUNK_DATA:
 	case HUNK_BSS:
 	case HUNK_PPC_CODE:
-	  if (!amiga_handle_cdb_hunk (abfd, hunk_type, i, hunk_attributes[i], hunk_sizes[i]))
+	  if (!amiga_handle_cdb_hunk (abfd, hunk_type, i,
+				      hunk_attributes[i], hunk_sizes[i]))
 	    {
 	      bfd_set_error (bfd_error_wrong_format);
 	      return FALSE;
@@ -1065,8 +1088,14 @@ static bfd_boolean amiga_read_load (abfd)
 }/* Of amiga_read_load */
 
 /* Handle NAME, CODE, DATA, BSS, DEBUG Hunks */
-static bfd_boolean amiga_handle_cdb_hunk (abfd, hunk_type, hunk_number, hunk_attribute, hunk_size)
-  bfd *abfd;unsigned long hunk_type;unsigned long hunk_number;unsigned long hunk_attribute;unsigned long hunk_size;
+static bfd_boolean
+amiga_handle_cdb_hunk (abfd, hunk_type, hunk_number, hunk_attribute,
+		       hunk_size)
+     bfd *abfd;
+     unsigned long hunk_type;
+     unsigned long hunk_number;
+     unsigned long hunk_attribute;
+     unsigned long hunk_size;
 /* If hunk_size==-1, then we are digesting a HUNK_UNIT */
 {
   sec_ptr current_section;
@@ -1120,7 +1149,8 @@ static bfd_boolean amiga_handle_cdb_hunk (abfd, hunk_type, hunk_number, hunk_att
       secflags = SEC_ALLOC;
       sec_name = ".bss";
 
-      do_section: if (!current_name)
+    do_section:
+      if (!current_name)
 	current_name = sec_name;
       if (!get_long (abfd, &tmp))
 	return FALSE;
@@ -1266,8 +1296,11 @@ static bfd_boolean amiga_handle_cdb_hunk (abfd, hunk_type, hunk_number, hunk_att
 
 /* Handle rest of a hunk
  I.e.: Relocs, EXT, SYMBOLS... */
-static bfd_boolean amiga_handle_rest (abfd, current_section, isload)
-  bfd *abfd;sec_ptr current_section;bfd_boolean isload;
+static bfd_boolean
+amiga_handle_rest (abfd, current_section, isload)
+     bfd *abfd;
+     sec_ptr current_section;
+     bfd_boolean isload;
 {
   amiga_per_section_type *asect = amiga_per_section(current_section);
   unsigned long hunk_type, hunk_value, relno, type, len, no;
@@ -1459,7 +1492,8 @@ static bfd_boolean amiga_handle_rest (abfd, current_section, isload)
   return TRUE;
 }/* of amiga_handle_rest */
 
-static bfd_boolean amiga_mkobject (abfd)
+static bfd_boolean
+amiga_mkobject (abfd)
   bfd *abfd;
 {
   amiga_data_type *rawptr;
@@ -1468,7 +1502,8 @@ static bfd_boolean amiga_mkobject (abfd)
   return (rawptr != NULL);
 }
 
-static bfd_boolean amiga_mkarchive (abfd)
+static bfd_boolean
+amiga_mkarchive (abfd)
   bfd *abfd;
 {
   amiga_ardata_type *ar;
@@ -1478,8 +1513,11 @@ static bfd_boolean amiga_mkarchive (abfd)
 }
 
 /* write nb long words (possibly swapped out) to the output file */
-static bfd_boolean write_longs (in, nb, abfd)
-  const unsigned long *in;unsigned long nb;bfd *abfd;
+static bfd_boolean
+write_longs (in, nb, abfd)
+     const unsigned long *in;
+     unsigned long nb;
+     bfd *abfd;
 {
   unsigned char out[10 * 4];
   unsigned long i;
@@ -1495,8 +1533,11 @@ static bfd_boolean write_longs (in, nb, abfd)
   return TRUE;
 }
 
-static bfd_boolean write_words (in, nb, abfd)
-  const unsigned long *in;unsigned long nb;bfd *abfd;
+static bfd_boolean
+write_words (in, nb, abfd)
+     const unsigned long *in;
+     unsigned long nb;
+     bfd *abfd;
 {
   unsigned char out[10 * 2];
   unsigned long i;
@@ -1512,8 +1553,10 @@ static bfd_boolean write_words (in, nb, abfd)
   return TRUE;
 }
 
-static long determine_datadata_relocs (abfd, section)
-  bfd *abfd ATTRIBUTE_UNUSED;sec_ptr section;
+static long
+determine_datadata_relocs (abfd, section)
+     bfd *abfd ATTRIBUTE_UNUSED;
+     sec_ptr section;
 {
   sec_ptr insection;
   asymbol *sym_p;
@@ -1538,8 +1581,10 @@ static long determine_datadata_relocs (abfd, section)
 }
 
 /* Adjust the indices map when we decide not to output the section <sec> */
-static void remove_section_index (sec, index_map)
-  sec_ptr sec;int *index_map;
+static void
+remove_section_index (sec, index_map)
+     sec_ptr sec;
+     int *index_map;
 {
   int i = sec->index;
   for (sec = sec->next, index_map[i++] = -1; sec; sec = sec->next)
@@ -1547,7 +1592,8 @@ static void remove_section_index (sec, index_map)
 }
 
 /* Write out the contents of a bfd */
-static bfd_boolean amiga_write_object_contents (abfd)
+static bfd_boolean
+amiga_write_object_contents (abfd)
   bfd *abfd;
 {
   long datadata_relocs = 0, bss_size = 0, idx;
@@ -1841,8 +1887,11 @@ static bfd_boolean amiga_write_object_contents (abfd)
 
 /* Write a string padded to 4 bytes and preceded by it's length in
  long words ORed with <value> */
-static bfd_boolean write_name (abfd, name, value)
-  bfd *abfd;const char *name;unsigned long value;
+static bfd_boolean
+write_name (abfd, name, value)
+     bfd *abfd;
+     const char *name;
+     unsigned long value;
 {
   unsigned long n[1];
   size_t l;
@@ -1860,7 +1909,8 @@ static bfd_boolean write_name (abfd, name, value)
   return (l && bfd_bwrite ((PTR) n, l, abfd) != l ? FALSE : TRUE);
 }
 
-static bfd_boolean amiga_write_archive_contents (arch)
+static bfd_boolean
+amiga_write_archive_contents (arch)
   bfd *arch;
 {
   struct stat status;
@@ -1914,13 +1964,19 @@ static bfd_boolean amiga_write_archive_contents (arch)
   return TRUE;
 }
 
-static bfd_boolean amiga_write_armap (arch, elength, map, orl_count, stridx)
-  bfd *arch ATTRIBUTE_UNUSED;unsigned int elength ATTRIBUTE_UNUSED;struct orl *map ATTRIBUTE_UNUSED;unsigned int orl_count ATTRIBUTE_UNUSED;int stridx ATTRIBUTE_UNUSED;
+static bfd_boolean
+amiga_write_armap (arch, elength, map, orl_count, stridx)
+     bfd *arch ATTRIBUTE_UNUSED;
+     unsigned int elength ATTRIBUTE_UNUSED;
+     struct orl *map ATTRIBUTE_UNUSED;
+     unsigned int orl_count ATTRIBUTE_UNUSED;
+     int stridx ATTRIBUTE_UNUSED;
 {
   return TRUE;
 }
 
-static int determine_type (r)
+static int
+determine_type (r)
   arelent *r;
 {
   switch (r->howto->type)
@@ -1957,15 +2013,22 @@ static int determine_type (r)
 }
 
 #define NB_RELOC_TYPES 8
-static const unsigned long reloc_types[NB_RELOC_TYPES] =
-  {
+static const unsigned long reloc_types[NB_RELOC_TYPES] = {
   HUNK_ABSRELOC32, HUNK_ABSRELOC16,
   HUNK_RELRELOC32, HUNK_RELRELOC16, HUNK_RELRELOC8,
-  HUNK_DREL32, HUNK_DREL16, HUNK_DREL8 };
+  HUNK_DREL32,     HUNK_DREL16,     HUNK_DREL8
+};
 
 /* Write out section contents, including relocs */
-static bfd_boolean amiga_write_section_contents (abfd, section, data_sec, datadata_relocs, index_map, max_hunk)
-  bfd *abfd;sec_ptr section;sec_ptr data_sec;unsigned long datadata_relocs;int *index_map;int max_hunk;
+static bfd_boolean
+amiga_write_section_contents (abfd, section, data_sec, datadata_relocs,
+			      index_map, max_hunk)
+     bfd *abfd;
+     sec_ptr section;
+     sec_ptr data_sec;
+     unsigned long datadata_relocs;
+     int *index_map;
+     int max_hunk;
 {
   sec_ptr insection;
   asymbol *sym_p;
@@ -2075,7 +2138,8 @@ static bfd_boolean amiga_write_section_contents (abfd, section, data_sec, datada
 
       sym_p = *(r->sym_ptr_ptr); /* The symbol for this relocation */
       insection = sym_p->section;
-      DPRINT(5,("Sec for reloc is %lx(%s)\n",insection,insection->name));DPRINT(5,("Symbol for this reloc is %lx(%s)\n",sym_p,sym_p->name));
+      DPRINT(5,("Sec for reloc is %lx(%s)\n",insection,insection->name));
+      DPRINT(5,("Symbol for this reloc is %lx(%s)\n",sym_p,sym_p->name));
       /* Is reloc relative to a special section? */
       if (bfd_is_special_section(insection))
 	continue; /* Nothing to do, since this translates to HUNK_EXT */
@@ -2320,7 +2384,8 @@ static bfd_boolean amiga_write_symbols (abfd, section)
 
   if (section->reloc_count == 0 && bfd_get_symcount (abfd) == 0)
     {/* Write HUNK_END */
-      alldone: DPRINT(5,("Leaving write_symbols\n"));
+    alldone:
+      DPRINT(5,("Leaving write_symbols\n"));
       n[0] = HUNK_END;
       return write_longs (n, 1, abfd);
     }
@@ -2571,13 +2636,16 @@ static bfd_boolean amiga_write_symbols (abfd, section)
       n[0] = 0;
       if (!write_longs (n, 1, abfd))
 	return FALSE;
-    }DPRINT(5,("Leaving\n"));
+    }
+  DPRINT(5,("Leaving\n"));
   goto alldone;
   /* Write HUNK_END, return */
 }
 
-static bfd_boolean amiga_get_section_contents (abfd, section, location, offset, count)
-  bfd *abfd;sec_ptr section;
+static bfd_boolean
+amiga_get_section_contents (abfd, section, location, offset, count)
+     bfd *abfd;
+     sec_ptr section;
   PTR location;
 file_ptr offset;
 bfd_size_type count;
@@ -2603,8 +2671,10 @@ bfd_size_type count;
     return TRUE;
   }
 
-static bfd_boolean amiga_new_section_hook (abfd, newsect)
-  bfd *abfd;sec_ptr newsect;
+static bfd_boolean
+amiga_new_section_hook (abfd, newsect)
+     bfd *abfd;
+     sec_ptr newsect;
 {
   newsect->used_by_bfd = (PTR) bfd_zalloc (abfd, sizeof(amiga_per_section_type));
   newsect->alignment_power = 2;
@@ -2613,7 +2683,8 @@ static bfd_boolean amiga_new_section_hook (abfd, newsect)
   return TRUE;
 }
 
-static bfd_boolean amiga_slurp_symbol_table (abfd)
+static bfd_boolean
+amiga_slurp_symbol_table (abfd)
   bfd *abfd;
 {
   amiga_data_type *amiga_data = AMIGA_DATA(abfd);
@@ -2874,7 +2945,9 @@ static long amiga_get_symtab (abfd, location)
   return bfd_get_symcount(abfd);
 }
 
-static asymbol * amiga_make_empty_symbol (abfd)
+
+static asymbol *
+amiga_make_empty_symbol (abfd)
   bfd *abfd;
 {
   amiga_symbol_type *new = (amiga_symbol_type *) bfd_zalloc (abfd, sizeof(amiga_symbol_type));
@@ -2882,8 +2955,12 @@ static asymbol * amiga_make_empty_symbol (abfd)
   return &new->symbol;
 }
 
-static void amiga_get_symbol_info (ignore_abfd, symbol, ret)
-  bfd *ignore_abfd ATTRIBUTE_UNUSED;asymbol *symbol;symbol_info *ret;
+
+static void
+amiga_get_symbol_info (ignore_abfd, symbol, ret)
+     bfd *ignore_abfd ATTRIBUTE_UNUSED;
+     asymbol *symbol;
+     symbol_info *ret;
 {
   bfd_symbol_info (symbol, ret);
   if (symbol->name[0] == ' ')
@@ -2892,7 +2969,9 @@ static void amiga_get_symbol_info (ignore_abfd, symbol, ret)
     ret->type = (symbol->flags & BSF_LOCAL) ? 'a' : 'A';
 }
 
-static void amiga_print_symbol (abfd, afile, symbol, how)
+
+static void
+amiga_print_symbol (abfd, afile,  symbol, how)
   bfd *abfd;
   PTR afile;
 asymbol *symbol;
@@ -2928,14 +3007,21 @@ bfd_print_symbol_type how;
       }
   }
 
-static long amiga_get_reloc_upper_bound (abfd, asect)
-  bfd *abfd ATTRIBUTE_UNUSED;sec_ptr asect;
+
+static long
+amiga_get_reloc_upper_bound (abfd, asect)
+     bfd *abfd ATTRIBUTE_UNUSED;
+     sec_ptr asect;
 {
   return (asect->reloc_count + 1) * sizeof(arelent *);
 }
 
-static bfd_boolean read_raw_relocs (abfd, section, d_offset, count)
-  bfd *abfd;sec_ptr section;unsigned long d_offset; /* offset in the bfd */
+
+static bfd_boolean
+read_raw_relocs (abfd, section, d_offset, count)
+     bfd *abfd;
+     sec_ptr section;
+     unsigned long d_offset;	/* offset in the bfd */
   unsigned long count; /* number of relocs */
 {
   unsigned long hunk_number, offset, type, no, j;
@@ -3003,8 +3089,11 @@ static bfd_boolean read_raw_relocs (abfd, section, d_offset, count)
 }
 
 /* slurp in relocs, amiga_digest_file left various pointers for us */
-static bfd_boolean amiga_slurp_relocs (abfd, section, symbols)
-  bfd *abfd;sec_ptr section;asymbol **symbols ATTRIBUTE_UNUSED;
+static bfd_boolean
+amiga_slurp_relocs (abfd, section, symbols)
+     bfd *abfd;
+     sec_ptr section;
+     asymbol **symbols ATTRIBUTE_UNUSED;
 {
   amiga_per_section_type *asect = amiga_per_section(section);
   reloc_howto_type *howto;
@@ -3079,8 +3168,13 @@ static bfd_boolean amiga_slurp_relocs (abfd, section, symbols)
   return TRUE;
 }/* Of slurp_relocs */
 
-static long amiga_canonicalize_reloc (abfd, section, relptr, symbols)
-  bfd *abfd;sec_ptr section;arelent **relptr;asymbol **symbols;
+
+static long
+amiga_canonicalize_reloc (abfd, section, relptr, symbols)
+     bfd *abfd;
+     sec_ptr section;
+     arelent **relptr;
+     asymbol **symbols;
 {
   amiga_reloc_type *src;
 
@@ -3101,8 +3195,10 @@ static long amiga_canonicalize_reloc (abfd, section, relptr, symbols)
  Otherwise, we try to allocate space for this section,
  if this has not already been done
  Then we set the memory area to the contents */
-static bfd_boolean amiga_set_section_contents (abfd, section, location, offset, count)
-  bfd *abfd;sec_ptr section;
+static bfd_boolean
+amiga_set_section_contents (abfd, section, location, offset, count)
+     bfd *abfd;
+     sec_ptr section;
   PTR location;
 file_ptr offset;
 bfd_size_type count;
@@ -3129,8 +3225,11 @@ bfd_size_type count;
   }/* Of set_section_contents */
 
 /* FIXME: Is this everything? */
-static bfd_boolean amiga_set_arch_mach (abfd, arch, machine)
-  bfd *abfd;enum bfd_architecture arch;unsigned long machine;
+static bfd_boolean
+amiga_set_arch_mach (abfd, arch, machine)
+     bfd *abfd;
+     enum bfd_architecture arch;
+     unsigned long machine;
 {
   bfd_default_set_arch_mach (abfd, arch, machine);
   if (arch == bfd_arch_m68k)
@@ -3153,8 +3252,10 @@ static bfd_boolean amiga_set_arch_mach (abfd, arch, machine)
   return FALSE;
 }
 
-static int amiga_sizeof_headers (ignore_abfd, ignore)
-  bfd *ignore_abfd ATTRIBUTE_UNUSED;bfd_boolean ignore ATTRIBUTE_UNUSED;
+static int
+amiga_sizeof_headers (ignore_abfd, ignore)
+     bfd *ignore_abfd ATTRIBUTE_UNUSED;
+     bfd_boolean ignore ATTRIBUTE_UNUSED;
 {
   /* The amiga hunk format doesn't have headers. */
   return 0;
@@ -3163,57 +3264,62 @@ static int amiga_sizeof_headers (ignore_abfd, ignore)
 /* Provided a BFD, a section and an offset into the section, calculate
  and return the name of the source file and the line nearest to the
  wanted location.  */
-bfd_boolean amiga_find_nearest_line (abfd, section, symbols, offset, filename_ptr, functionname_ptr, line_ptr)
-  bfd *abfd ATTRIBUTE_UNUSED;sec_ptr section ATTRIBUTE_UNUSED;asymbol **symbols ATTRIBUTE_UNUSED;bfd_vma offset ATTRIBUTE_UNUSED;const char **filename_ptr ATTRIBUTE_UNUSED;const char **functionname_ptr ATTRIBUTE_UNUSED;unsigned int *line_ptr ATTRIBUTE_UNUSED;
+bfd_boolean
+amiga_find_nearest_line (abfd, section, symbols, offset, filename_ptr,
+			 functionname_ptr, line_ptr)
+     bfd *abfd ATTRIBUTE_UNUSED;
+     sec_ptr section ATTRIBUTE_UNUSED;
+     asymbol **symbols ATTRIBUTE_UNUSED;
+     bfd_vma offset ATTRIBUTE_UNUSED;
+     const char **filename_ptr ATTRIBUTE_UNUSED;
+     const char **functionname_ptr ATTRIBUTE_UNUSED;
+     unsigned int *line_ptr ATTRIBUTE_UNUSED;
 {
   /* FIXME (see aoutx.h, for example) */
   return FALSE;
 }
 
-static reloc_howto_type * amiga_bfd_reloc_type_lookup (abfd, code)
-  bfd *abfd ATTRIBUTE_UNUSED;bfd_reloc_code_real_type code;
+static reloc_howto_type *
+amiga_bfd_reloc_type_lookup (abfd, code)
+     bfd *abfd ATTRIBUTE_UNUSED;
+     bfd_reloc_code_real_type code;
 {
   DPRINT(5,("reloc: %s (%d)\n",bfd_get_reloc_code_name(code),code));
   switch (code)
     {
-    case BFD_RELOC_8_PCREL:
-      return &howto_table[R_PC8];
-    case BFD_RELOC_16_PCREL:
-      return &howto_table[R_PC16];
-    case BFD_RELOC_32_PCREL:
-      return &howto_table[R_PC32];
-    case BFD_RELOC_8:
-      return &howto_table[R_ABS8];
-    case BFD_RELOC_16:
-      return &howto_table[R_ABS16];
-    case BFD_RELOC_32:
-      return &howto_table[R_ABS32];
-    case BFD_RELOC_8_BASEREL:
-      return &howto_table[R_SD8];
-    case BFD_RELOC_16_BASEREL:
-      return &howto_table[R_SD16];
-    case BFD_RELOC_32_BASEREL:
-      return &howto_table[R_SD32];
-    case BFD_RELOC_CTOR:
-      return &howto_table[R_ABS32];
+    case BFD_RELOC_8_PCREL:    return &howto_table[R_PC8];
+    case BFD_RELOC_16_PCREL:   return &howto_table[R_PC16];
+    case BFD_RELOC_32_PCREL:   return &howto_table[R_PC32];
+    case BFD_RELOC_8:          return &howto_table[R_ABS8];
+    case BFD_RELOC_16:         return &howto_table[R_ABS16];
+    case BFD_RELOC_32:         return &howto_table[R_ABS32];
+    case BFD_RELOC_8_BASEREL:  return &howto_table[R_SD8];
+    case BFD_RELOC_16_BASEREL: return &howto_table[R_SD16];
+    case BFD_RELOC_32_BASEREL: return &howto_table[R_SD32];
+    case BFD_RELOC_CTOR:       return &howto_table[R_ABS32];
       /* FIXME: everything handled? */
-    default:
-      return NULL;
+    default:                   return NULL;
     }
 }
 
-static bfd_boolean amiga_bfd_copy_private_bfd_data (ibfd, obfd)
-  bfd *ibfd;bfd *obfd;
-{
-  if (bfd_get_flavour (ibfd) == bfd_target_amiga_flavour && bfd_get_flavour (obfd) == bfd_target_amiga_flavour)
+static bfd_boolean
+amiga_bfd_copy_private_bfd_data (ibfd, obfd)
+     bfd *ibfd;
+     bfd *obfd;
     {
+  if (bfd_get_flavour (ibfd) == bfd_target_amiga_flavour
+      && bfd_get_flavour (obfd) == bfd_target_amiga_flavour) {
       AMIGA_DATA(obfd)->IsLoadFile = AMIGA_DATA(ibfd)->IsLoadFile;
     }
   return TRUE;
 }
 
-static bfd_boolean amiga_bfd_copy_private_section_data (ibfd, isec, obfd, osec)
-  bfd *ibfd ATTRIBUTE_UNUSED;sec_ptr isec;bfd *obfd ATTRIBUTE_UNUSED;sec_ptr osec;
+static bfd_boolean
+amiga_bfd_copy_private_section_data (ibfd, isec, obfd, osec)
+     bfd *ibfd ATTRIBUTE_UNUSED;
+     sec_ptr isec;
+     bfd *obfd ATTRIBUTE_UNUSED;
+     sec_ptr osec;
 {
   if (bfd_get_flavour (osec->owner) == bfd_target_amiga_flavour
       && bfd_get_flavour (isec->owner) == bfd_target_amiga_flavour)
@@ -3226,7 +3332,8 @@ static bfd_boolean amiga_bfd_copy_private_section_data (ibfd, isec, obfd, osec)
 
 /* There is no armap in the amiga libraries, so we fill carsym entries
  one by one after having parsed the whole archive. */
-static bfd_boolean amiga_slurp_armap (abfd)
+static bfd_boolean
+amiga_slurp_armap (abfd)
   bfd *abfd;
 {
   struct arch_syms *syms;
@@ -3312,12 +3419,16 @@ static bfd_boolean amiga_slurp_armap (abfd)
   return TRUE;
 }
 
-static void amiga_truncate_arname (abfd, pathname, arhdr)
-  bfd *abfd ATTRIBUTE_UNUSED;const char *pathname ATTRIBUTE_UNUSED;char *arhdr ATTRIBUTE_UNUSED;
+static void
+amiga_truncate_arname (abfd, pathname, arhdr)
+     bfd *abfd ATTRIBUTE_UNUSED;
+     const char *pathname ATTRIBUTE_UNUSED;
+     char *arhdr ATTRIBUTE_UNUSED;
 {
 }
 
-static const struct bfd_target * amiga_archive_p (abfd)
+static const struct bfd_target *
+amiga_archive_p (abfd)
   bfd *abfd;
 {
   struct arch_syms *symbols = NULL;
@@ -3334,7 +3445,8 @@ static const struct bfd_target * amiga_archive_p (abfd)
   if (stat_buffer.st_size != 0)
     {
       /* scan the units */
-      if (!parse_archive_units (abfd, &units, stat_buffer.st_size, FALSE, &symbols, &symcount))
+      if (!parse_archive_units (abfd, &units, stat_buffer.st_size, FALSE,
+				&symbols, &symcount))
 	{
 	  bfd_set_error (bfd_error_wrong_format);
 	  return NULL;
@@ -3377,8 +3489,10 @@ static const struct bfd_target * amiga_archive_p (abfd)
   return NULL;
 }
 
-static bfd * amiga_openr_next_archived_file (archive, last_file)
-  bfd *archive;bfd *last_file;
+static bfd *
+amiga_openr_next_archived_file (archive, last_file)
+     bfd *archive;
+     bfd *last_file;
 {
   file_ptr filestart;
 
@@ -3395,7 +3509,8 @@ static bfd * amiga_openr_next_archived_file (archive, last_file)
   return _bfd_get_elt_at_filepos (archive, filestart);
 }
 
-static PTR amiga_read_ar_hdr (abfd)
+static PTR
+amiga_read_ar_hdr (abfd)
 bfd *abfd;
   {
     struct areltdata *ared;
@@ -3468,8 +3583,10 @@ bfd *abfd;
     return (PTR) ared;
   }
 
-static int amiga_generic_stat_arch_elt (abfd, buf)
-  bfd *abfd;struct stat *buf;
+static int
+amiga_generic_stat_arch_elt (abfd, buf)
+     bfd *abfd;
+     struct stat *buf;
 {
   if (abfd->arelt_data == NULL)
     {
@@ -3538,9 +3655,7 @@ get_relocated_section_contents PARAMS ((bfd *, struct bfd_link_info *,
 #define amiga_bfd_link_hash_table_free	_bfd_generic_link_hash_table_free
 #define amiga_bfd_link_add_symbols	_bfd_generic_link_add_symbols
 #define amiga_bfd_link_just_syms	_bfd_generic_link_just_syms
-bfd_boolean amiga_final_link
-PARAMS (
-(bfd *, struct bfd_link_info *));
+bfd_boolean amiga_final_link PARAMS ((bfd *, struct bfd_link_info *));
 #define amiga_bfd_final_link		amiga_final_link
 #define amiga_bfd_link_split_section	_bfd_generic_link_split_section
 #define amiga_bfd_gc_sections		bfd_generic_gc_sections
@@ -3593,14 +3708,11 @@ const bfd_target amiga_vec =
   BFD_JUMP_TABLE_COPY(amiga),
   BFD_JUMP_TABLE_CORE(_bfd_nocore),
   BFD_JUMP_TABLE_ARCHIVE(amiga),
-  BFD_JUMP_TABLE_SYMBOLS(
-    amiga),
+  BFD_JUMP_TABLE_SYMBOLS (amiga),
   BFD_JUMP_TABLE_RELOCS(amiga),
   BFD_JUMP_TABLE_WRITE(amiga),
   BFD_JUMP_TABLE_LINK(amiga),
-  BFD_JUMP_TABLE_DYNAMIC(
-    _bfd_nodynamic)
-,
+  BFD_JUMP_TABLE_DYNAMIC (_bfd_nodynamic),
 NULL,
 NULL
 };
