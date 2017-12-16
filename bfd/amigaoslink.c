@@ -115,7 +115,6 @@ my_add_to PARAMS ((arelent *, PTR, int, int));
 static void amiga_update_target_section PARAMS ((sec_ptr));
 static bfd_reloc_status_type
 amiga_perform_reloc PARAMS ((bfd *, arelent *, PTR, sec_ptr, bfd *, char **));
-static void aout_update_target_section PARAMS ((sec_ptr));
 static bfd_reloc_status_type
 aout_perform_reloc PARAMS ((bfd *, arelent *, PTR, sec_ptr, bfd *, char **));
 static bfd_boolean
@@ -531,35 +530,6 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
   return ret;
 }
 
-
-/* For base-relative linking place .bss symbols in the .data section.  */
-static void
-aout_update_target_section (target_section)
-     sec_ptr target_section;
-{
-  /* If target->out is .bss, add the value of the .data section to
-     sym->value and set new output_section */
-  /* If we access a symbol in the .bss section, we have to convert
-     this to an access to .data section */
-  /* This is done through a change to the output section of
-     the symbol.. */
-  if (!strcmp(target_section->output_section->name,".bss"))
-    {
-      /* get value for .data section */
-      bfd *ibfd;
-      sec_ptr s;
-
-      ibfd=target_section->output_section->owner;
-      for (s=ibfd->sections;s!=NULL;s=s->next)
-	if (!strcmp(s->name,".data"))
-	  {
-	    target_section->output_offset+=s->_raw_size;
-	    target_section->output_section=s;
-	  }
-    }
-}
-
-
 /* Perform an a.out relocation */
 static bfd_reloc_status_type
 aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
@@ -656,7 +626,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
       else
 	{
 	  if (amiga_base_relative)
-	    aout_update_target_section (target_section);
+	    amiga_update_target_section (target_section);
 	  relocation=0;
 	  copy=TRUE;
 	}
@@ -711,7 +681,7 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
         }
       else /* Target section and sec need not be the same.. */
 	{
-	  aout_update_target_section (target_section);
+	  amiga_update_target_section (target_section);
 	  relocation = sym->value + target_section->output_offset;
 	  /* if the symbol is in .bss, subtract the offset that gas has put
 	     into the opcode */
@@ -823,25 +793,6 @@ amiga_final_link (abfd, info)
 	   o != (asection *) NULL;
 	   o = o->next)
 	{
-	  /* If section is .data, find .bss and add that length */
-	  if (!info->relocateable && amiga_base_relative &&
-	      !strcmp(o->name,".data"))
-	    {
-	      if (bfd_get_flavour(abfd)!=bfd_target_amiga_flavour) /* oops */
-		{
-		  bfd_msg ("You can't use base relative linking with "
-			   "partial links.");
-		}
-	      else if (0) /* XXX */
-		{
-		  asection *act_sec;
-		  for (act_sec=abfd->sections; act_sec!=NULL;act_sec=act_sec->next)
-		    if (!strcmp(act_sec->name,".bss"))
-		      amiga_per_section(o)->disk_size = o->_raw_size +
-			act_sec->_raw_size;
-		}
-	    }/* Of base-relative linking */
-
 	  DPRINT(10,("Section in output bfd is %s (%lx)\n",o->name,o));
 
 	  o->reloc_count = 0;
