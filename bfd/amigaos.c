@@ -610,6 +610,26 @@ parse_archive_units (abfd, n_units, filesize, one, syms, symcount)
 	    }
 	  stab_pos = stabstr_pos = 0;
 	  /* no break */
+	case HUNK_NAME:
+	  if (!get_long (abfd, &len))
+	    return FALSE;
+
+	  /* check for .stab and .stabstr. */
+	  if (len <= 16)
+	    {
+	      static char name[16*4 + 1];
+	      if (bfd_bread (name, len<<2, abfd) != len<<2)
+		return FALSE;
+	      name[len<<2] = 0;
+	      last_name = name;
+#ifdef DEBUG_AMIGA
+	      if (HUNK_VALUE(hunk_type) == HUNK_UNIT)
+		DPRINT(10, ("unit: %s\n", last_name));
+#endif
+	    }
+	  else if (bfd_seek (abfd, HUNK_VALUE (len) << 2, SEEK_CUR))
+	    return FALSE;
+	  break;
 	case HUNK_CODE:
 	case HUNK_DATA:
 	case HUNK_PPC_CODE:
@@ -669,24 +689,6 @@ parse_archive_units (abfd, n_units, filesize, one, syms, symcount)
 			case N_WARNING:
 			case N_INDR | N_EXT:
 			  i += 12; // skip next
-			  /* no break */
-			  //
-			  //	    case N_UNDF | N_EXT:
-			  //	    case N_ABS | N_EXT:
-			  //	    case N_TEXT | N_EXT:
-			  //	    case N_DATA | N_EXT:
-			  //	    case N_SETV | N_EXT:
-			  //	    case N_BSS | N_EXT:
-			  //	    case N_COMM | N_EXT:
-			  //	    case N_SETA: case N_SETA | N_EXT:
-			  //	    case N_SETT: case N_SETT | N_EXT:
-			  //	    case N_SETD: case N_SETD | N_EXT:
-			  //	    case N_SETB: case N_SETB | N_EXT:
-			  //	    case N_WEAKU:
-			  //	    case N_WEAKA:
-			  //	    case N_WEAKT:
-			  //	    case N_WEAKD:
-			  //	    case N_WEAKB:
 			  break;
 			}
 
@@ -706,6 +708,7 @@ parse_archive_units (abfd, n_units, filesize, one, syms, symcount)
 		      nsyms->unit_offset = unit_offset;
 
 		      nsyms->name = (char *) stabstrdata + str_offset;
+		      DPRINT(20,("sym: %s\n", nsyms->name));
 
 		      ++defsymcount;
 		    }
@@ -715,21 +718,6 @@ parse_archive_units (abfd, n_units, filesize, one, syms, symcount)
 	    }
 
 	  if (bfd_seek (abfd, HUNK_VALUE (len) << 2, SEEK_CUR))
-	    return FALSE;
-	  break;
-	case HUNK_NAME:
-	  if (!get_long (abfd, &len))
-	    return FALSE;
-
-	  /* check for .stab and .stabstr. */
-	  if (len == 2)
-	    {
-	      static char name[12];
-	      if (bfd_bread (name, 8, abfd) != 8)
-		return FALSE;
-	      last_name = name;
-	    }
-	  else if (bfd_seek (abfd, HUNK_VALUE (len) << 2, SEEK_CUR))
 	    return FALSE;
 	  break;
 	case HUNK_BSS:
@@ -793,7 +781,15 @@ parse_archive_units (abfd, n_units, filesize, one, syms, symcount)
 		  if (defsym_pos == 0)
 		    defsym_pos = bfd_tell (abfd) - 4;
 		  /* skip name & value */
-		  if (bfd_seek (abfd, (len + 1) << 2, SEEK_CUR))
+		  if (len <= 16)
+		    {
+		      static char name[16*4 + 1 + 4];
+		      if (bfd_bread (name, 4 + len*4, abfd) != len*4 + 4)
+			return FALSE;
+		      name[len<<2] = 0;
+		      DPRINT(20,("sym: %s\n", name));
+		    }
+		  else 		  if (bfd_seek (abfd, (len + 1) << 2, SEEK_CUR))
 		    return FALSE;
 		  defsymcount++;
 		  break;
@@ -2818,8 +2814,7 @@ amiga_slurp_symbol_table (abfd)
 	  unsigned str_offset = bfd_getb32 (stabdata + i);
 	  char type = stabdata[i + 4];
 	  unsigned value = bfd_getb32 (stabdata + i + 8);
-
-	  asp->symbol.flags = BSF_GLOBAL;
+	  unsigned flags = BSF_GLOBAL;
 
 	  switch (type)
 	    {
@@ -2828,17 +2823,17 @@ amiga_slurp_symbol_table (abfd)
 
 	    case N_WARNING:
 	      section = bfd_und_section_ptr;
-	      asp->symbol.flags |= BSF_WARNING;
+	      flags |= BSF_WARNING;
 	      break;
 	    case N_INDR | N_EXT:
 	      asp->symbol.section = bfd_ind_section_ptr;
-	      asp->symbol.flags |= BSF_INDIRECT;
+	      flags |= BSF_INDIRECT;
 	      break;
 	    case N_UNDF | N_EXT:
 	      if (value == 0)
 		{
 		  asp->symbol.section = bfd_und_section_ptr;
-		  asp->symbol.flags = 0;
+		  flags = 0;
 		}
 	      else
 		asp->symbol.section = bfd_com_section_ptr;
@@ -2861,46 +2856,47 @@ amiga_slurp_symbol_table (abfd)
 	      break;
 	    case N_SETA:
 	    case N_SETA | N_EXT:
-	      asp->symbol.flags |= BSF_CONSTRUCTOR;
+	      flags |= BSF_CONSTRUCTOR;
 	      asp->symbol.section = bfd_abs_section_ptr;
 	      break;
 	    case N_SETT:
 	    case N_SETT | N_EXT:
-	      asp->symbol.flags |= BSF_CONSTRUCTOR;
+	      flags |= BSF_CONSTRUCTOR;
 	      asp->symbol.section = stext;
 	      break;
 	    case N_SETD:
 	    case N_SETD | N_EXT:
-	      asp->symbol.flags |= BSF_CONSTRUCTOR;
+	      flags |= BSF_CONSTRUCTOR;
 	      asp->symbol.section = sdata;
 	      break;
 	    case N_SETB:
 	    case N_SETB | N_EXT:
-	      asp->symbol.flags |= BSF_CONSTRUCTOR;
+	      flags |= BSF_CONSTRUCTOR;
 	      asp->symbol.section = sbss;
 	      break;
 	    case N_WEAKU:
 	      asp->symbol.section = bfd_und_section_ptr;
-	      asp->symbol.flags |= BSF_WEAK;
+	      flags |= BSF_WEAK;
 	      break;
 	    case N_WEAKA:
 	      asp->symbol.section = bfd_abs_section_ptr;
-	      asp->symbol.flags |= BSF_WEAK;
+	      flags |= BSF_WEAK;
 	      break;
 	    case N_WEAKT:
 	      asp->symbol.section = stext;
-	      asp->symbol.flags |= BSF_WEAK;
+	      flags |= BSF_WEAK;
 	      break;
 	    case N_WEAKD:
 	      asp->symbol.section = sdata;
-	      asp->symbol.flags |= BSF_WEAK;
+	      flags |= BSF_WEAK;
 	      break;
 	    case N_WEAKB:
 	      asp->symbol.section = sbss;
-	      asp->symbol.flags |= BSF_WEAK;
+	      flags |= BSF_WEAK;
 	      break;
 	    }
 
+	  asp->symbol.flags = flags;
 	  asp->symbol.the_bfd = abfd;
 	  asp->type = 0x81; //??
 	  asp->index = asp - amiga_data->symbols;
@@ -2914,8 +2910,6 @@ amiga_slurp_symbol_table (abfd)
 
 	  ++asp;
 	}
-
-      bfd_release (abfd, stabdata);
     }
   return TRUE;
 }
