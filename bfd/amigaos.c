@@ -1594,7 +1594,7 @@ amiga_write_object_contents (abfd)
 {
   long datadata_relocs = 0, bss_size = 0, idx;
   int *index_map, max_hunk = -1;
-  sec_ptr data_sec, p;
+  sec_ptr data_sec, p, q;
   unsigned long i, n[5];
 
   /* Distinguish UNITS, LOAD Files
@@ -1602,6 +1602,56 @@ amiga_write_object_contents (abfd)
   DPRINT(5,("Entering write_object_conts\n"));
 
   abfd->output_has_begun = TRUE; /* Output has begun */
+
+  if (AMIGA_DATA(abfd)->IsLoadFile)
+    {
+      // shuffle .stab and .stabstr to end
+      for (q = abfd->sections, p = q->next; p != NULL; q = p, p = p->next)
+	{
+	  if (0 == strcmp (p->name, ".stab"))
+	    {
+	      if (p->next)
+		{
+		  q->next = p->next;
+		  if (write_debug_hunk)
+		    {
+		      q = p->next;
+		      while (q->next)
+			q = q->next;
+		      q->next = p;
+		      p->next = 0;
+		    }
+		}
+	      else
+		q->next = 0;
+	      break;
+	    }
+	}
+      for (q = abfd->sections, p = q->next; p != NULL; q = p, p = p->next)
+	{
+	  if (0 == strcmp (p->name, ".stabstr"))
+	    {
+	      if (p->next)
+		{
+		  q->next = p->next;
+		  if (write_debug_hunk)
+		    {
+		      q = p->next;
+		      while (q->next)
+			q = q->next;
+		      q->next = p;
+		      p->next = 0;
+		    }
+		}
+	      else
+		q->next = 0;
+	      break;
+	    }
+	}
+      int n = 0;
+      for (p = abfd->sections; p != NULL; p = p->next)
+	p->index = n++;
+    }
 
   index_map = bfd_alloc (abfd, abfd->section_count * sizeof(int));
   if (!index_map)
