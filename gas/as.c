@@ -89,7 +89,7 @@ char *myname;
 segT reg_section, expr_section;
 segT text_section, data_section, bss_section;
 #ifdef OBJ_AMIGAHUNK
-segT data_chip_section, bss_chip_section;
+segT data_chip_section, data_fast_section, data_far_section, bss_chip_section, bss_fast_section, bss_far_section;
 #endif
 #endif
 
@@ -1049,7 +1049,11 @@ perform_an_assembly_pass (argc, argv)
   bss_section = subseg_new (BSS_SECTION_NAME, 0);
 #ifdef OBJ_AMIGAHUNK
   data_chip_section = subseg_new (".data_chip", 0);
+  data_fast_section = subseg_new (".data_fast", 0);
+  data_far_section = subseg_new (".data_far", 0);
   bss_chip_section = subseg_new (".bss_chip", 0);
+  bss_fast_section = subseg_new (".bss_fast", 0);
+  bss_far_section = subseg_new (".bss_far", 0);
 #endif
   /* @@ FIXME -- we're setting the RELOC flag so that sections are assumed
      to have relocs, otherwise we don't find out in time.  */
@@ -1064,7 +1068,13 @@ perform_an_assembly_pass (argc, argv)
 #ifdef OBJ_AMIGAHUNK
   bfd_set_section_flags (stdoutput, data_chip_section,
 			 applicable & (SEC_ALLOC | SEC_LOAD | SEC_RELOC));
+  bfd_set_section_flags (stdoutput, data_fast_section,
+			 applicable & (SEC_ALLOC | SEC_LOAD | SEC_RELOC));
+  bfd_set_section_flags (stdoutput, data_far_section,
+			 applicable & (SEC_ALLOC | SEC_LOAD | SEC_RELOC));
   bfd_set_section_flags (stdoutput, bss_chip_section, applicable & SEC_ALLOC);
+  bfd_set_section_flags (stdoutput, bss_fast_section, applicable & SEC_ALLOC);
+  bfd_set_section_flags (stdoutput, bss_far_section, applicable & SEC_ALLOC);
 #endif
 
   seg_info (bss_section)->bss = 1;

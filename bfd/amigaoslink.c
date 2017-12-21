@@ -123,6 +123,7 @@ amiga_reloc_link_order PARAMS ((bfd *, struct bfd_link_info *, asection *,
 
 enum { ADDEND_UNSIGNED=0x01, RELOC_SIGNED=0x02 };
 
+int relocation;
 
 /* This one is nearly identical to bfd_generic_get_relocated_section_contents
    in reloc.c */
@@ -245,6 +246,7 @@ get_relocated_section_contents (abfd, link_info, link_order, data,
 		default:
 		  DPRINT(10,("get_rel_sec_cont fails, perform reloc "
 			     "returned $%x\n",r));
+		  fprintf(stderr, "%s: %s reloc for %s is out of range: %08x\n", abfd->filename, (*(*parent)->sym_ptr_ptr)->section->name, bfd_asymbol_name (*(*parent)->sym_ptr_ptr), relocation);
 		  abort ();
 		  break;
 		}
@@ -387,7 +389,7 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
   sec_ptr target_section; /* reloc is relative to this section */
   bfd_reloc_status_type ret;
   bfd_boolean copy;
-  int relocation,flags;
+  int flags;
 
   DPRINT(5,("Entering APR\nflavour is %d (amiga_flavour=%d, aout_flavour=%d)\n",
 	    bfd_get_flavour (sec->owner), bfd_target_amiga_flavour,
@@ -425,6 +427,7 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
   DPRINT(5,("%s: size=%u\n",r->howto->name,bfd_get_reloc_size(r->howto)));
   switch (r->howto->type)
     {
+    case H_ABS16:
     case H_ABS32:
       if (bfd_is_abs_section(target_section)) /* Ref to absolute hunk */
 	relocation=sym->value;

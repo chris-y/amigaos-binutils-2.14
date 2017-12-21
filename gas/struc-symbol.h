@@ -1,4 +1,4 @@
-/* struct_symbol.h - Internal symbol structure
+/* struc-symbol.h - Internal symbol structure
    Copyright 1987, 1992, 1993, 1994, 1995, 1998, 1999, 2000, 2001
    Free Software Foundation, Inc.
 

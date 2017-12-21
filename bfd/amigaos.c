@@ -2031,7 +2031,7 @@ determine_type (r)
       return 0;
 
     case H_ABS16: /* 16 bit absolute */
-      return 1;
+      return 0; // not working properly?
 
     case H_PC32: /* 32 bit pcrel */
       return 2;
@@ -2304,6 +2304,13 @@ amiga_write_section_contents (abfd, section, data_sec, datadata_relocs,
 
   if (reloc_count > 0)
     {
+
+      /* do not use H_ABS32 and H_ABS16 simultaneous. */
+      if (reloc_counts[0] && reloc_counts[1])
+	{
+
+	}
+
       /* Sample every reloc type */
       for (i = 0; i < NB_RELOC_TYPES; i++)
 	{
@@ -2726,6 +2733,8 @@ amiga_new_section_hook (abfd, newsect)
   newsect->alignment_power = 2;
   if (!strcmp (newsect->name, ".data_chip") || !strcmp (newsect->name, ".bss_chip"))
     amiga_per_section(newsect)->attribute |= MEMF_CHIP;
+  if (!strcmp (newsect->name, ".data_fast") || !strcmp (newsect->name, ".bss_fast"))
+    amiga_per_section(newsect)->attribute |= MEMF_FAST;
   return TRUE;
 }
 
@@ -2842,6 +2851,12 @@ amiga_slurp_symbol_table (abfd)
     {
       amiga_per_section_type *astab = amiga_per_section(stab);
       amiga_per_section_type *astabstr = amiga_per_section(stabstr);
+
+      if (sbss == 0)
+	sbss = amiga_make_unique_section (abfd, ".bss");
+
+      if (sdata == 0)
+	sdata = amiga_make_unique_section (abfd, ".data");
 
       unsigned char * stabstrdata = (unsigned char *) bfd_alloc (abfd, astabstr->disk_size);
       if (!stabstrdata)

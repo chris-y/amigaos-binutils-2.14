@@ -145,7 +145,7 @@ extern void s_bad_endr PARAMS ((int));
 extern void s_comm PARAMS ((int));
 extern void s_data PARAMS ((int));
 #ifdef OBJ_AMIGAHUNK
-extern void s_data_chip PARAMS ((int));
+extern void s_data_amiga PARAMS ((int));
 #endif
 extern void s_desc PARAMS ((int));
 extern void s_else PARAMS ((int arg));

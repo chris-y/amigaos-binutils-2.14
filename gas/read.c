@@ -49,7 +49,7 @@ Software Foundation, 59 Temple Place - Suite 330, Boston, MA
 #endif
 
 #ifdef OBJ_AMIGAHUNK
-extern segT data_chip_section, bss_chip_section;
+extern segT data_chip_section, data_fast_section, data_far_section, bss_chip_section, bss_fast_section, bss_far_section;
 #endif
 
 /* Set by the object-format or the target.  */
@@ -282,7 +282,12 @@ static const pseudo_typeS potable[] = {
   {"common.s", s_mri_common, 1},
   {"data", s_data, 0},
 #ifdef OBJ_AMIGAHUNK
-  {"datachip", s_data_chip, 0},
+  {"datachip", s_data_amiga, 0},
+  {"datafast", s_data_amiga, 1},
+  {"datafar", s_data_amiga, 2},
+  {"bsschip", s_data_amiga, 0+8},
+  {"bssfast", s_data_amiga, 1+8},
+  {"bssfar", s_data_amiga, 2+8},
 #endif
   {"dc", cons, 2},
   {"dc.b", cons, 1},
@@ -1565,11 +1570,30 @@ s_data (ignore)
 
 #ifdef OBJ_AMIGAHUNK
 void
-s_data_chip (ignore)
-     int ignore ATTRIBUTE_UNUSED;
+s_data_amiga (which)
+     int which;
 {
   int temp = get_absolute_expression ();
-  subseg_set (data_chip_section, (subsegT) temp);
+  switch (which) {
+    case 0:
+      subseg_set (data_chip_section, (subsegT) temp);
+      break;
+    case 1:
+      subseg_set (data_fast_section, (subsegT) temp);
+      break;
+    case 2:
+      subseg_set (data_far_section, (subsegT) temp);
+      break;
+    case 8:
+      subseg_set (bss_chip_section, (subsegT) temp);
+      break;
+    case 9:
+      subseg_set (bss_fast_section, (subsegT) temp);
+      break;
+    case 10:
+      subseg_set (bss_far_section, (subsegT) temp);
+      break;
+  }
   demand_empty_rest_of_line ();
 }
 #endif

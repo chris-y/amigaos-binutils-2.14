@@ -25,6 +25,7 @@
 #include "obstack.h"
 #include "subsegs.h"
 #include "dwarf2dbg.h"
+#include "struc-symbol.h"
 
 #include "opcode/m68k.h"
 #include "m68k-parse.h"
@@ -1576,7 +1577,8 @@ m68k_ip (instring)
 		case 'B':	/* FOO */
 		  if (opP->mode != ABSL
 		      || (flag_long_jumps
-			  && strncmp (instring, "jbsr", 4) == 0))
+			  && opP->disp.exp.X_add_symbol->bsym && opP->disp.exp.X_add_symbol->bsym->name[0] != '.'
+			  && (strncmp (instring, "jbsr", 4) == 0 || strncmp (instring, "jra", 3) == 0)))
 		    losing++;
 		  break;
 
@@ -7176,8 +7178,8 @@ md_show_usage (stream)
 			target has/lacks memory-management unit coprocessor\n\
 			[default yes for 68020 and up]\n\
 -pic, -k		generate position independent code\n\
--S			turn jbsr into jsr\n\
--smallcode, -sc		small code model\n\
+-S			turn jbsr into jsr and keeps jra for non local labels.\n\
+-smallcode, -sc		small code model - does nothing atm\n\
 --pcrel                 never turn PC-relative branches into absolute jumps\n\
 --register-prefix-optional\n\
 			recognize register names without prefix character\n\

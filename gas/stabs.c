@@ -207,11 +207,9 @@ s_stab_generic (what, stab_secname, stabstr_secname)
     {
       int length;
 
-      string = demand_copy_C_string (&length);
-      /* FIXME: We should probably find some other temporary storage
-	 for string, rather than leaking memory if someone else
-	 happens to use the notes obstack.  */
-      saved_string_obstack_end = notes.next_free;
+      string = strdup(demand_copy_C_string (&length));
+      saved_string_obstack_end = string;
+
       SKIP_WHITESPACE ();
       if (*input_line_pointer == ',')
 	input_line_pointer++;
@@ -348,12 +346,6 @@ s_stab_generic (what, stab_secname, stabstr_secname)
 	}
 
       stroff = get_stab_string_offset (string, stabstr_secname);
-      if (what == 's')
-	{
-	  /* Release the string, if nobody else has used the obstack.  */
-	  if (saved_string_obstack_end == notes.next_free)
-	    obstack_free (&notes, string);
-	}
 
       /* At least for now, stabs in a special stab section are always
 	 output as 12 byte blocks of information.  */
@@ -400,6 +392,9 @@ s_stab_generic (what, stab_secname, stabstr_secname)
       abort ();
 #endif
     }
+
+  if (saved_string_obstack_end)
+    free(string);
 
   demand_empty_rest_of_line ();
 }
