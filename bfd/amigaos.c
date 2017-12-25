@@ -698,7 +698,6 @@ parse_archive_units (
 
 		      nsyms->name = (char *) stabstrdata + str_offset;
 		      DPRINT(20,("sym: %s\n", nsyms->name));
-
 		      ++defsymcount;
 		    }
 		  bfd_seek (abfd, last_pos, SEEK_SET);
@@ -751,7 +750,6 @@ parse_archive_units (
 	    return FALSE;
 	  break;
 	case HUNK_EXT:
-	  defsym_pos = 0;
 	  if (!get_long (abfd, &n))
 	    return FALSE;
 	  while (n)
@@ -763,35 +761,14 @@ parse_archive_units (
 		case EXT_SYMB:
 		case EXT_DEF:
 		case EXT_ABS:
-		case EXT_ABSCOMMON:
 		  /* retain the positions of defined symbols for each object
 		   in the archive. They'll be used later to build a
 		   pseudo-armap, which _bfd_generic_link_add_archive_symbols
 		   needs */
-		  if (defsym_pos == 0)
-		    defsym_pos = bfd_tell (abfd) - 4;
+		  defsym_pos = bfd_tell (abfd) - 4;
 		  /* skip name & value */
-		  if (len <= 16)
-		    {
-		      static char name[16*4 + 1 + 4];
-		      if (bfd_bread (name, 4 + len*4, abfd) != len*4 + 4)
-			return FALSE;
-		      name[len<<2] = 0;
-		      DPRINT(20,("sym: %s\n", name));
-		    }
-		  else if (bfd_seek (abfd, (len + 1) << 2, SEEK_CUR))
+		  if (bfd_seek (abfd, (len + 1) << 2, SEEK_CUR))
 		    return FALSE;
-		  defsymcount++;
-
-		  if (type == EXT_ABSCOMMON)
-		    {
-		      /* skip references */
-		      if (!get_long (abfd, &no))
-			return FALSE;
-		      if (no && bfd_seek (abfd, no << 2, SEEK_CUR))
-			return FALSE;
-		    }
-
 		  break;
 
 		case EXT_ABSREF32:
@@ -814,6 +791,9 @@ parse_archive_units (
 		    return FALSE;
 		  break;
 
+		case EXT_ABSCOMMON:
+		  defsym_pos = bfd_tell (abfd) - 4;
+		
 		case EXT_RELCOMMON:
 		case EXT_DEXT32COMMON:
 		case EXT_DEXT16COMMON:
@@ -833,25 +813,28 @@ parse_archive_units (
 		  return FALSE;
 		}
 
+		if (defsym_pos != 0 && syms)
+		  {
+		    /* there are some defined symbols, keep enough information on
+		     them to simulate an armap later on */
+		    nsyms = (struct arch_syms *) bfd_alloc (abfd, sizeof(struct arch_syms));
+		    nsyms->next = NULL;
+		    if (syms_tail)
+		      syms_tail->next = nsyms;
+		    else
+		      *syms = nsyms;
+		    syms_tail = nsyms;
+		    nsyms->offset = defsym_pos;
+		    nsyms->size = bfd_tell (abfd) - defsym_pos;
+		    nsyms->unit_offset = unit_offset;
+		    nsyms->name = 0;
+
+		    ++defsymcount;
+		    defsym_pos = 0;
+		  }
+
 	      if (!get_long (abfd, &n))
 		return FALSE;
-	    }
-	  if (defsym_pos != 0 && syms)
-	    {
-	      /* there are some defined symbols, keep enough information on
-	       them to simulate an armap later on */
-	      nsyms = (struct arch_syms *) bfd_alloc (abfd, sizeof(struct arch_syms));
-	      nsyms->next = NULL;
-	      if (syms_tail)
-		syms_tail->next = nsyms;
-	      else
-		*syms = nsyms;
-	      syms_tail = nsyms;
-	      nsyms->offset = defsym_pos;
-	      nsyms->size = bfd_tell (abfd) - defsym_pos;
-	      nsyms->unit_offset = unit_offset;
-	      nsyms->name = 0;
-
 	    }
 	  break; /* of HUNK_EXT */
 
@@ -3411,6 +3394,12 @@ amiga_slurp_armap (
       unsigned long type, len, n;
       char *symblock;
 
+	if(csym >= defsyms + symcount)
+	{
+	  fprintf(stderr, "slurp_armap: read to many symbols\n");
+	  exit(1);
+	}
+
       if (syms->name)
 	{
 	  csym->file_offset = syms->unit_offset;
@@ -3426,8 +3415,9 @@ amiga_slurp_armap (
 	return FALSE;
       if (bfd_bread (symblock, syms->size, abfd) != syms->size)
 	return FALSE;
-      while (n = GL(symblock), n)
-	{
+
+      n = GL(symblock);
+	
 	  symblock += 4;
 	  len = n & 0xffffff;
 	  type = (n >> 24) & 0xff;
@@ -3435,41 +3425,15 @@ amiga_slurp_armap (
 	  csym->name = symblock;
 	  csym->name[len] = '\0';
 	  csym->file_offset = syms->unit_offset;
-	  csym++;
-	  switch (type)
-	    {
-	    case EXT_SYMB:
-	    case EXT_DEF:
-	    case EXT_ABS:
-	      symblock += len + 4; /* name+value */
-	      break;
-	    case EXT_ABSREF32:
-	    case EXT_RELREF16:
-	    case EXT_RELREF8:
-	    case EXT_DEXT32:
-	    case EXT_DEXT16:
-	    case EXT_DEXT8:
-	    case EXT_RELREF32:
-	    case EXT_ABSREF16:
-	    case EXT_ABSREF8:
-	    case EXT_RELREF26:
-	      symblock += len;
-	      symblock += (1 + GL(symblock)) << 2;
-	      break;
-	    case EXT_ABSCOMMON:
-	    case EXT_RELCOMMON:
-	    case EXT_DEXT32COMMON:
-	    case EXT_DEXT16COMMON:
-	    case EXT_DEXT8COMMON:
-	      symblock += len + 4;
-	      symblock += (1 + GL(symblock)) << 2;
-	      break;
-	    default: /* error */
-	      bfd_msg ("unexpected type %ld(0x%lx) in hunk_ext3 at offset 0x%lx", type, type, bfd_tell (abfd));
-	      return FALSE;
-	    }
-	}
+	  ++csym;
     }
+    
+  	if(csym != defsyms + symcount)
+	{
+	  fprintf(stderr, "slurp_armap: read not enough symbols\n");
+	  exit(1);
+	}
+    
   bfd_has_map (abfd) = TRUE;
   return TRUE;
 }
