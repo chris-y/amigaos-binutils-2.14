@@ -213,6 +213,9 @@ get_relocated_section_contents (
 	  for (; lo1; lo1 = lo1->next)
 	    {
 	      asection * s = lo1->u.indirect.section;
+	      if (s->owner->xvec->flavour != bfd_target_amiga_flavour)
+		continue;
+
 	      if (strcmp(s->name, ".text"))
 		continue;
 
@@ -231,6 +234,9 @@ get_relocated_section_contents (
 	      for (; lo1; lo1 = lo1->next)
 		{
 		  asection * s = lo1->u.indirect.section;
+		  if (s->owner->xvec->flavour != bfd_target_amiga_flavour)
+		    continue;
+
 		  if (strcmp(s->name, ".text"))
 		    continue;
 
@@ -357,7 +363,7 @@ get_relocated_section_contents (
       /**
        *
        */
-      if (input_section->reloc_count > 0)
+      if (input_section->owner->xvec->flavour == bfd_target_amiga_flavour &&  input_section->reloc_count > 0)
 	{
 	  amiga_reloc_type *src;
 	  for (src = (amiga_reloc_type *) input_section->relocation; src; src = src->next)
