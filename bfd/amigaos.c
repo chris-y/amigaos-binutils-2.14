@@ -210,7 +210,7 @@ static void amiga_print_symbol PARAMS ((bfd *, PTR, asymbol *,
 static long amiga_get_reloc_upper_bound PARAMS ((bfd *, sec_ptr));
 static bfd_boolean read_raw_relocs PARAMS ((bfd *, sec_ptr, unsigned long,
 	unsigned long));
-static bfd_boolean amiga_slurp_relocs PARAMS ((bfd *, sec_ptr, asymbol **));
+bfd_boolean amiga_slurp_relocs PARAMS ((bfd *, sec_ptr, asymbol **));
 static long amiga_canonicalize_reloc PARAMS ((bfd *, sec_ptr, arelent **,
 	asymbol **));
 static bfd_boolean amiga_set_section_contents PARAMS ((bfd *, sec_ptr, PTR,
@@ -232,7 +232,7 @@ static bfd *amiga_openr_next_archived_file PARAMS ((bfd *, bfd *));
 static PTR amiga_read_ar_hdr PARAMS ((bfd *));
 static int amiga_generic_stat_arch_elt PARAMS ((bfd *, struct stat *));
 
-//#define DEBUG_AMIGA 1
+/*#define DEBUG_AMIGA 1*/
 #if DEBUG_AMIGA
 #include <stdarg.h>
 static void
@@ -249,7 +249,7 @@ error_print (const char *fmt, ...)
 #endif
 
 enum {R_ABS32=0,R_ABS16,R_ABS8,R_PC32,R_PC16,R_PC8,R_SD32,R_SD16,R_SD8,R_PC26,R__MAX};
-static reloc_howto_type howto_table[R__MAX] =
+reloc_howto_type howto_table[R__MAX] =
 {
   {H_ABS32,   /* type */
   0,          /* rightshift */
@@ -450,8 +450,7 @@ static sec_ptr amiga_get_section_by_hunk_number (bfd *abfd, long hunk_number)
 	last_bfd = abfd;
 	return p;
       }
-  BFD_FAIL ()
-  ;
+  BFD_FAIL ();
   return NULL;
 }
 
@@ -2682,27 +2681,27 @@ amiga_get_section_contents (
   PTR location,
 file_ptr offset,
 bfd_size_type count)
-  {
-    unsigned long disk_size=amiga_per_section(section)->disk_size;
+{
+  unsigned long disk_size=amiga_per_section(section)->disk_size;
 
-    if (bfd_seek (abfd, section->filepos + offset, SEEK_SET))
-    return FALSE;
+  if (bfd_seek (abfd, section->filepos + offset, SEEK_SET))
+  return FALSE;
 
-    if (offset+count > disk_size)
-      {
-	/* the section's size on disk may be smaller than in memory
-	 in this case, pad the contents */
-	if (bfd_bread (location, disk_size-offset, abfd) != disk_size-offset)
-	return FALSE;
-	memset ((char *) location + disk_size - offset, 0, count-(disk_size-offset));
-      }
-    else
-      {
-	if (bfd_bread (location, count, abfd) != count)
-	return FALSE;
-      }
-    return TRUE;
-  }
+  if (offset+count > disk_size)
+    {
+      /* the section's size on disk may be smaller than in memory
+       in this case, pad the contents */
+      if (bfd_bread (location, disk_size-offset, abfd) != disk_size-offset)
+      return FALSE;
+      memset ((char *) location + disk_size - offset, 0, count-(disk_size-offset));
+    }
+  else
+    {
+      if (bfd_bread (location, count, abfd) != count)
+      return FALSE;
+    }
+  return TRUE;
+}
 
 static bfd_boolean
 amiga_new_section_hook (
@@ -3128,7 +3127,7 @@ read_raw_relocs (
 }
 
 /* slurp in relocs, amiga_digest_file left various pointers for us */
-static bfd_boolean
+bfd_boolean
 amiga_slurp_relocs (
      bfd *abfd,
      sec_ptr section,

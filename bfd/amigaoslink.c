@@ -70,6 +70,10 @@ the original routines from @file{linker.c} and @file{reloc.c}.
 
 #define bfd_msg (*_bfd_error_handler)
 
+#ifndef PARAMS
+#define PARAMS(a) a
+#endif
+
 /*#define DEBUG_AMIGA 1*/
 #if DEBUG_AMIGA
 #include <stdarg.h>
@@ -110,6 +114,8 @@ amiga_final_link PARAMS ((bfd *, struct bfd_link_info *));
 bfd_boolean
 aout_amiga_final_link PARAMS ((bfd *, struct bfd_link_info *));
 
+bfd_boolean amiga_slurp_relocs PARAMS ((bfd *, sec_ptr, asymbol **));
+
 static bfd_reloc_status_type
 my_add_to PARAMS ((arelent *, PTR, int, int));
 static void amiga_update_target_section PARAMS ((sec_ptr));
@@ -121,21 +127,32 @@ static bfd_boolean
 amiga_reloc_link_order PARAMS ((bfd *, struct bfd_link_info *, asection *,
 	struct bfd_link_order *));
 
-enum { ADDEND_UNSIGNED=0x01, RELOC_SIGNED=0x02 };
+enum { ADDEND_UNSIGNED=0x01, RELOC_SIGNED=0x02};
 
 int relocation;
+
+extern bfd_boolean trace_file_tries;
+extern reloc_howto_type  howto_table[10];
+
+struct rel_chain {
+  asymbol * symbol;
+  signed offset;
+};
+
+static struct rel_chain * rel_jumps;
+static unsigned rel_jumps_count;
+static unsigned rel_jumps_max;
 
 /* This one is nearly identical to bfd_generic_get_relocated_section_contents
    in reloc.c */
 bfd_byte *
-get_relocated_section_contents (abfd, link_info, link_order, data,
-				relocateable, symbols)
-     bfd *abfd;
-     struct bfd_link_info *link_info;
-     struct bfd_link_order *link_order;
-     bfd_byte *data;
-     bfd_boolean relocateable;
-     asymbol **symbols;
+get_relocated_section_contents (
+     bfd *abfd,
+     struct bfd_link_info *link_info,
+     struct bfd_link_order *link_order,
+     bfd_byte *data,
+     bfd_boolean relocateable,
+     asymbol **symbols)
 {
   /* Get enough memory to hold the stuff.  */
   bfd *input_bfd = link_order->u.indirect.section->owner;
@@ -174,6 +191,257 @@ get_relocated_section_contents (abfd, link_info, link_order, data,
 				 (bfd_vma) 0,
 				 input_section->_raw_size))
     goto error_return;
+
+  /**
+   * Check here for to large pcrel relocs which are to large.
+   * hack the current input_section:
+   * 1. append a jmp <symbol>   4ef9 0000 0000
+   * 2. perform relocation to the new jmp
+   * 3. patch the relent: address and howto
+   * 4. patch output_offsets of all input_sections starting behind current input_section
+   *
+   * Since the output offsets may change, a dry run is needed to precompute the new section sizes and offsets.
+   *
+   */
+  if (0 == strcmp(input_section->name, ".text"))
+    {
+      // dry run? on first invocation there is no content yet in the output_section
+      if (!input_section->output_section->contents)
+	{
+	  // record the current sizes;
+	  struct bfd_link_order * lo1 = link_order;
+	  for (; lo1; lo1 = lo1->next)
+	    {
+	      asection * s = lo1->u.indirect.section;
+	      if (strcmp(s->name, ".text"))
+		continue;
+
+	      s->userdata = (void *)s->_raw_size;
+	    }
+
+	  /**
+	   * determine new section sizes, loop until output_section no longer changes.
+	   */
+	  for(;;)
+	    {
+	      unsigned totalsize = input_section->output_section->_raw_size;
+	      rel_jumps_count = 0;
+
+	      lo1 = link_order;
+	      for (; lo1; lo1 = lo1->next)
+		{
+		  asection * s = lo1->u.indirect.section;
+		  if (strcmp(s->name, ".text"))
+		    continue;
+
+		  if (s->reloc_count <= 0)
+		    continue;
+
+		  DPRINT(10, ("%s: %d relocs\n", s->owner->filename, s->reloc_count));
+
+		  // reset _raw_size
+		  unsigned cursize = s->_raw_size;
+		  s->_raw_size = (unsigned)s->userdata;
+
+
+		  amiga_reloc_type *src;
+		  for (src = (amiga_reloc_type *) s->relocation; src; src = src->next)
+		    {
+		      signed from;
+		      signed to;
+		      signed dist;
+		      if (src->relent.howto->type != H_PC16 || strcmp(src->symbol->section->name, ".text"))
+			continue;
+
+		      // check if relative jump is in 16 bit range
+		      to = src->symbol->section->output_offset + src->symbol->value;
+		      from = s->output_offset + src->relent.address;
+		      dist = to - from;
+
+		      if (-32766 <= dist && dist <= 32766)
+			continue;
+
+		      DPRINT(10, ("%s %d, ", src->symbol->name, dist));
+
+		      if (trace_file_tries)
+			info_msg (_("using long jump from %s to %s:%s\n"), s->owner->filename,
+				  src->symbol->section->owner->filename, src->symbol->name);
+
+		      // check last generated jumps
+		      if (rel_jumps)
+			{
+			  unsigned i = 0;
+			  for (; i < rel_jumps_count; ++i)
+			    {
+			      if (rel_jumps[i].symbol == src->symbol)
+				{
+				  to = rel_jumps[i].offset;
+				  dist = to - from;
+				  break;
+				}
+			    }
+			  // use an existing jump entry
+			  if (-32766 <= dist && dist <= 32766)
+			    {
+			      DPRINT(10, ("reuse %d, ", dist));
+			      continue;
+			    }
+			}
+
+		      // 2.
+		      // update rel_jumps
+		      unsigned slot = 0;
+		      for (;slot < rel_jumps_count; ++ slot)
+			{
+			  if (rel_jumps[slot].offset - from < -32766)
+			    break;
+			}
+		      if (slot == rel_jumps_max)
+			{
+			  rel_jumps_max += 16;
+			  rel_jumps = (struct rel_chain *)realloc(rel_jumps, sizeof(struct rel_chain) * rel_jumps_max);
+			}
+		      rel_jumps[slot].symbol = src->symbol;
+		      rel_jumps[slot].offset = s->_raw_size + s->output_offset;
+		      if (slot == rel_jumps_count)
+			++rel_jumps_count;
+
+		      s->_raw_size += 6;
+		    }
+
+		  DPRINT(10, ("\n"));
+
+		  // update sizes and offsets
+		  unsigned delta = s->_raw_size - cursize;
+		  if (delta == 0)
+		    continue;
+
+		  s->output_section->_raw_size += delta;
+		  s->_cooked_size = s->_raw_size;
+		  lo1->size += delta;
+
+		  // 4.
+		  struct bfd_link_order * lo = lo1->next;
+		  for (; lo; lo = lo->next)
+		    {
+		      asection * s = lo->u.indirect.section;
+		      if (0 == strcmp(s->name, ".text"))
+			{
+			  s->output_offset += delta;
+			  lo->offset += delta;
+			}
+		    }
+		}
+
+	      // stop if there was no size increase
+	      if (input_section->output_section->_raw_size == totalsize)
+		break;
+	    }
+
+	  // reset count
+	  rel_jumps_count = 0;
+
+	  /* adjust memory for first section. */
+	  if ((unsigned)input_section->userdata < input_section->_raw_size)
+	    {
+	      PTR odata = data;
+	      data = bfd_alloc(abfd, input_section->_raw_size);
+	      memcpy(data, odata, (unsigned)input_section->userdata);
+	    }
+
+	  /**
+	   * Now all sections have its final offset and size plus the old size in userdata.
+	   */
+	}
+
+      /**
+       *
+       */
+      if (input_section->reloc_count > 0)
+	{
+	  amiga_reloc_type *src;
+	  for (src = (amiga_reloc_type *) input_section->relocation; src; src = src->next)
+	    {
+	      signed from;
+	      signed to;
+	      signed dist;
+	      if (src->relent.howto->type != H_PC16 || strcmp(src->symbol->section->name, ".text"))
+		continue;
+
+	      // check if relative jump is in 16 bit range
+	      to = src->symbol->section->output_offset + src->symbol->value;
+	      from = input_section->output_offset + src->relent.address;
+	      dist = to - from;
+
+	      if (-32766 <= dist && dist <= 32766)
+		continue;
+
+	      // check last generated jumps
+	      if (rel_jumps)
+		{
+		  unsigned i = 0;
+		  for (; i < rel_jumps_count; ++i)
+		    {
+		      if (rel_jumps[i].symbol == src->symbol)
+			{
+			  to = rel_jumps[i].offset;
+			  dist = to - from;
+			  break;
+			}
+		    }
+		  // use an existing jump entry
+		  if (-32766 <= dist && dist <= 32766)
+		    {
+		      // 3.
+		      signed relpos = src->relent.address;
+		      signed offset = rel_jumps[i].offset - input_section->output_offset - relpos;
+		      data[relpos] = offset >> 8;
+		      data[relpos + 1] = offset;
+
+		      src->relent.address = 0x80000000;
+
+		      DPRINT(10, ("reuse %s %d\n", src->symbol->name, dist));
+
+		      continue;
+		    }
+		}
+
+
+	      // 1. append a long jump
+	      signed endpos = (unsigned)input_section->userdata;
+	      input_section->userdata = (void *)((unsigned)input_section->userdata + 6);
+	      data[endpos] = 0x4e;
+	      data[endpos + 1] = 0xf9;
+	      data[endpos + 2] = 0;
+	      data[endpos + 3] = 0;
+	      data[endpos + 4] = 0;
+	      data[endpos + 5] = 0;
+
+	      // update rel_jumps
+	      unsigned slot = 0;
+	      for (;slot < rel_jumps_count; ++ slot)
+		{
+		  if (rel_jumps[slot].offset - from < -32766)
+		    break;
+		}
+	      rel_jumps[slot].symbol = src->symbol;
+	      rel_jumps[slot].offset = endpos + input_section->output_offset;
+	      if (slot == rel_jumps_count)
+		++rel_jumps_count;
+
+	      // 2. apply relocation
+	      signed relpos = src->relent.address;
+	      signed offset = endpos - relpos;
+	      data[relpos] = offset >> 8;
+	      data[relpos + 1] = offset;
+
+	      // 3. convert to ABS32 reloc
+	      src->relent.howto = &howto_table[0];
+	      src->relent.addend = 0;
+	      src->relent.address = endpos + 2;
+	    }
+	}
+    }
 
   /* We're not relaxing the section, so just copy the size info.  */
   input_section->_cooked_size = input_section->_raw_size;
@@ -269,10 +537,10 @@ error_return:
 
 /* Add a value to a location */
 static bfd_reloc_status_type
-my_add_to (r, data, add, flags)
-     arelent *r;
-     PTR data;
-     int add, flags;
+my_add_to (
+     arelent *r,
+     PTR data,
+     int add, int flags)
 {
   bfd_reloc_status_type ret=bfd_reloc_ok;
   bfd_byte *p=((bfd_byte *)data)+r->address;
@@ -349,8 +617,8 @@ my_add_to (r, data, add, flags)
 
 /* For base-relative linking place .bss symbols in the .data section.  */
 static void
-amiga_update_target_section (target_section)
-     sec_ptr target_section;
+amiga_update_target_section (
+     sec_ptr target_section)
 {
   /* If target->out is .bss, add the value of the .data section to
      sym->value and set new output_section */
@@ -377,13 +645,13 @@ amiga_update_target_section (target_section)
 
 /* Perform an Amiga relocation */
 static bfd_reloc_status_type
-amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
-     bfd *abfd;
-     arelent *r;
-     PTR data;
-     sec_ptr sec;
-     bfd *obfd;
-     char **error_message ATTRIBUTE_UNUSED;
+amiga_perform_reloc (
+     bfd *abfd,
+     arelent *r,
+     PTR data,
+     sec_ptr sec,
+     bfd *obfd,
+     char **error_message ATTRIBUTE_UNUSED)
 {
   asymbol *sym; /* Reloc is relative to sym */
   sec_ptr target_section; /* reloc is relative to this section */
@@ -452,8 +720,11 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
 	}
       break;
 
-    case H_PC8: /* pcrel */
     case H_PC16:
+      if (r->address == 0x80000000)
+	return bfd_reloc_ok;
+      /* no break */
+    case H_PC8: /* pcrel */
     case H_PC32:
       if (bfd_is_abs_section(target_section)) /* Ref to absolute hunk */
 	relocation=sym->value;
@@ -535,13 +806,13 @@ amiga_perform_reloc (abfd, r, data, sec, obfd, error_message)
 
 /* Perform an a.out relocation */
 static bfd_reloc_status_type
-aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
-     bfd *abfd;
-     arelent *r;
-     PTR data;
-     sec_ptr sec;
-     bfd *obfd;
-     char **error_message ATTRIBUTE_UNUSED;
+aout_perform_reloc (
+     bfd *abfd,
+     arelent *r,
+     PTR data,
+     sec_ptr sec,
+     bfd *obfd,
+     char **error_message ATTRIBUTE_UNUSED)
 {
   asymbol *sym; /* Reloc is relative to sym */
   sec_ptr target_section; /* reloc is relative to this section */
@@ -641,8 +912,11 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
 		 sym->name));
       break;
 
-    case H_PC8: /* pcrel */
     case H_PC16:
+      if (r->address == 0x80000000)
+	return bfd_reloc_ok;
+      /* no break */
+    case H_PC8: /* pcrel */
     case H_PC32:
       if (bfd_is_abs_section(target_section)) /* Ref to absolute hunk */
 	relocation=sym->value;
@@ -728,13 +1002,12 @@ aout_perform_reloc (abfd, r, data, sec, obfd, error_message)
   return ret;
 }
 
-
 /* The final link routine, used both by Amiga and a.out backend */
 /* This is nearly a copy of linker.c/_bfd_generic_final_link */
 bfd_boolean
-amiga_final_link (abfd, info)
-     bfd *abfd;
-     struct bfd_link_info *info;
+amiga_final_link (
+     bfd *abfd,
+     struct bfd_link_info *info)
 {
   bfd *sub;
   asection *o;
@@ -744,14 +1017,14 @@ amiga_final_link (abfd, info)
   struct bfd_link_hash_entry *h =
     bfd_link_hash_lookup (info->hash, "___a4_init", FALSE, FALSE, TRUE);
 
+  DPRINT(5,("Entering final_link\n"));
+
   if (amiga_base_relative && h && h->type == bfd_link_hash_defined) {
     AMIGA_DATA(abfd)->baserel = TRUE;
     AMIGA_DATA(abfd)->a4init = h->u.def.value;
   }
   else
     AMIGA_DATA(abfd)->baserel = FALSE;
-
-  DPRINT(5,("Entering final_link\n"));
 
   if (bfd_get_flavour (abfd) == bfd_target_aout_flavour)
     return aout_amiga_final_link (abfd, info);
@@ -911,11 +1184,11 @@ amiga_final_link (abfd, info)
 /* Handle reloc link order.
    This is nearly a copy of linker.c/_bfd_generic_reloc_link_order */
 static bfd_boolean
-amiga_reloc_link_order (abfd, info, sec, link_order)
-     bfd *abfd;
-     struct bfd_link_info *info;
-     asection *sec;
-     struct bfd_link_order *link_order;
+amiga_reloc_link_order (
+     bfd *abfd,
+     struct bfd_link_info *info,
+     asection *sec,
+     struct bfd_link_order *link_order)
 {
   arelent *r;
 

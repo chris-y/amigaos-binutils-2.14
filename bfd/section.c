@@ -1175,12 +1175,11 @@ DESCRIPTION
  : bfd_get_section_size_before_reloc (sec))
 
 bfd_boolean
-bfd_set_section_contents (abfd, section, location, offset, count)
-     bfd *abfd;
-     sec_ptr section;
-     PTR location;
-     file_ptr offset;
-     bfd_size_type count;
+bfd_set_section_contents (bfd *abfd,
+			  sec_ptr section,
+			  PTR location,
+			  file_ptr offset,
+			  bfd_size_type count)
 {
   bfd_size_type sz;
 
