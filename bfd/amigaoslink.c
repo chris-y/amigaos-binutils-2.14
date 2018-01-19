@@ -131,7 +131,6 @@ enum { ADDEND_UNSIGNED=0x01, RELOC_SIGNED=0x02};
 
 int relocation;
 
-extern bfd_boolean trace_file_tries;
 extern reloc_howto_type  howto_table[10];
 
 struct rel_chain {
@@ -269,9 +268,9 @@ get_relocated_section_contents (
 
 		      DPRINT(10, ("%s %d, ", src->symbol->name, dist));
 
-		      if (trace_file_tries)
-			info_msg (_("using long jump from %s to %s:%s\n"), s->owner->filename,
+		      printf("INFO: using long jump from %s to %s:%s\n", s->owner->filename,
 				  src->symbol->section->owner->filename, src->symbol->name);
+		      fflush(stdout);
 
 		      // check last generated jumps
 		      if (rel_jumps)
